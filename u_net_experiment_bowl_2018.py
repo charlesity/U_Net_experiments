@@ -1,5 +1,4 @@
 
-
 import random
 import warnings
 import time
@@ -70,7 +69,8 @@ for i in range(C.n_experiments):
         C.validation_split = val_ratio
         model = model_instance(C)
 
-        history = model.fit(X_train, Y_train, validation_split=C.validation_split, batch_size=C.batch_size, epochs=C.epoch)
+        # history = model.fit(X_train, Y_train, validation_split=C.validation_split, batch_size=C.batch_size, epochs=C.epoch)
+        history = model.fit(X_train, Y_train, validation_split=C.validation_split,  epochs=C.epoch)
         loss.append(history.history['loss'])
         val_loss.append(history.history['val_loss'])
         mean_iou.append(history.history['mean_iou'])
