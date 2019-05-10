@@ -1,11 +1,16 @@
 import numpy as np
+from scipy.stats import entropy
+
 from tqdm import tqdm
 from itertools import chain
 from skimage.io import imread, imshow, imread_collection, concatenate_images
 from skimage.transform import resize
 from skimage.morphology import label
-
+import matplotlib.pyplot as plt
 import os
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+# os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 import sys
 
 
@@ -21,7 +26,7 @@ K.clear_session()
 
 import tensorflow as tf
 
-
+from Network import *
 
 
 def switch_result_file(argument):
@@ -66,98 +71,32 @@ def getAndResizeMask(train_ids, test_ids, C):
 
     return X_train, Y_train, X_test
 
-
-
-def mean_iou(y_true, y_pred):
-    prec = []
-    for t in np.arange(0.8, 1.0, 0.5):
-        y_pred_ = tf.to_int32(y_pred > t)
-        score, up_opt = tf.metrics.mean_iou(y_true, y_pred_, 2)
-        K.get_session().run(tf.local_variables_initializer())
-        with tf.control_dependencies([up_opt]):
-            score = tf.identity(score)
-        prec.append(score)
-    return K.mean(K.stack(prec), axis=0)
-
-
 def model_instance(C):
-    # Build U-Net model
-    if K.image_data_format() == 'channels_first':
-        input_shape = (C.IMG_CHANNELS, C.IMG_HEIGHT, C.IMG_WIDTH)
-    else:
-        input_shape = (C.IMG_HEIGHT, C.IMG_WIDTH, C.IMG_CHANNELS)
-
-    inputs = Input(shape=input_shape)
-
-
-    s = Lambda(lambda x: x / 255) (inputs)
-
-
-    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (s)
-    c1 = Dropout(C.standard_dropout) (c1) if C.enable_standard_dropout else c1
-    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c1)
-    c1 = Dropout(C.max_pool_maxpool_dropout) (c1) if C.enable_maxpool_dropout else c1
-    p1 = MaxPooling2D((2, 2)) (c1)
-
-    c2 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p1)
-    c2 = Dropout(C.standard_dropout) (c2) if C.enable_standard_dropout else c2
-    c2 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c2)
-    c2 = Dropout(C.max_pool_maxpool_dropout) (c2) if C.enable_maxpool_dropout else c2
-    p2 = MaxPooling2D((2, 2)) (c2)
+    net_instance = Network(C)
+    return net_instance
 
 
 
-    c3 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p2)
-    c3 = Dropout(C.standard_dropout) (c3) if C.enable_standard_dropout else c3
-    c3 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c3)
-    c3 = Dropout(C.max_pool_maxpool_dropout) (c3) if C.enable_maxpool_dropout else c3
-    p3 = MaxPooling2D((2, 2)) (c3)
+def bald(net_instance, unlabled_x, C):
+    the_shape = np.append(unlabled_x.shape[0], C.output_shape)
+    score_All = np.zeros(shape=(the_shape))
+    All_Entropy_Dropout = np.zeros(shape=unlabled_x.shape[0])
 
-    c4 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p3)
-    c4 = Dropout(C.standard_dropout) (c4) if C.enable_standard_dropout else c4
-    c4 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c4)
-    c4 = Dropout(C.max_pool_maxpool_dropout) (c4) if C.enable_maxpool_dropout else c4
-    p4 = MaxPooling2D(pool_size=(2, 2)) (c4)
+    for d in range(C.dropout_iterations):
+        dropout_score = net_instance.stochastic_foward_pass(unlabled_x)
+        score_All = score_All + dropout_score
+        Entropy_Per_Dropout = np.zeros((dropout_score.shape[0]))
+        for i in range(dropout_score.shape[0]):
+            Entropy_Per_Dropout[i] = entropy(dropout_score[i].flatten())
+        All_Entropy_Dropout = All_Entropy_Dropout + Entropy_Per_Dropout # sum across all pixel entropies
 
+    Avg_Dropout_Entropy = np.divide(All_Entropy_Dropout, C.dropout_iterations)
+    Avg_Score = np.divide(score_All, C.dropout_iterations)
+    Avg_entropy = np.zeros((Avg_Score.shape[0]))
 
+    for i in range(Avg_entropy.shape[0]):
+        Avg_entropy[i] = entropy(Avg_Score[i].flatten())
 
-    c5 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (p4)
-    c5 = Dropout(C.standard_dropout) (c5) if C.enable_standard_dropout else c5
-    c5 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c5)
-    c5 = Dropout(C.max_pool_maxpool_dropout) (c5) if C.enable_maxpool_dropout else c5
+    U_X = Avg_entropy - Avg_Dropout_Entropy
 
-
-    u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same') (c5)
-    u6 = concatenate([u6, c4])
-    c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u6)
-    c6 = Dropout(C.standard_dropout) (c6) if C.enable_standard_dropout else c6
-    c6 = Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c6)
-    c6 = Dropout(C.max_pool_maxpool_dropout) (c6) if C.enable_maxpool_dropout else c6
-
-    u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same') (c6)
-    u7 = concatenate([u7, c3])
-    c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u7)
-    c7 = Dropout(C.standard_dropout) (c7) if C.enable_standard_dropout else c7
-    c7 = Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c7)
-    c7 = Dropout(C.max_pool_maxpool_dropout) (c7) if C.enable_maxpool_dropout else c7
-
-    u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same') (c7)
-    u8 = concatenate([u8, c2])
-    c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u8)
-    c8 = Dropout(C.standard_dropout) (c8) if C.enable_standard_dropout else c8
-    c8 = Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c8)
-    c8 = Dropout(C.max_pool_maxpool_dropout) (c8) if C.enable_maxpool_dropout else c8
-
-
-    u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same') (c8)
-    u9 = concatenate([u9, c1], axis=3)
-    c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (u9)
-    c9 = Dropout(C.standard_dropout) (c9) if C.enable_standard_dropout else c9
-    c9 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same') (c9)
-
-    outputs = Conv2D(1, (1, 1), activation='sigmoid') (c9)
-
-    model = Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[mean_iou])
-
-    return model
+    return U_X.argsort()[-C.active_batch:][::-1]

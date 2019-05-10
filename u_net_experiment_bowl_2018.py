@@ -4,7 +4,6 @@ import warnings
 import time
 
 import numpy as np
-import pandas as pd
 
 import matplotlib.pyplot as plt
 import argparse
@@ -22,7 +21,7 @@ start_time = time.time()
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-ds", "--dataset_location",  required = True, help ="link to the datasource")
-parser.add_argument("-dt", "--dropout_type", type=int, required=True,   help="Standard=0, max_pool=1, both=2")
+parser.add_argument("-dt", "--dropout_type", type=int, required=True,   help="NoDropout=0, Standard dropout= 1, max_pool=2, Both=3")
 
 parser = parser.parse_args()
 
@@ -67,7 +66,7 @@ for i in range(C.n_experiments):
     val_mean_iou_np = np.zeros((len(val_dataset_sizes),  C.epoch))
     for val_ratio in val_dataset_sizes:
         C.validation_split = val_ratio
-        model = model_instance(C)
+        model = model_instance(C).getModel()
 
         # history = model.fit(X_train, Y_train, validation_split=C.validation_split, batch_size=C.batch_size, epochs=C.epoch)
         history = model.fit(X_train, Y_train, validation_split=C.validation_split,  epochs=C.epoch)
