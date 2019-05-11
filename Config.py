@@ -40,6 +40,7 @@ class Config:
 
         self.early_stop = 1
         self.early_stop_patience = 10 # 10 percent of epoch
+        self.regularizers = True
 
     def set_enable_dropout(self, argument):
         if argument == 0:

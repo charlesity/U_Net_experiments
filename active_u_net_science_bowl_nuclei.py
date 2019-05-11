@@ -45,10 +45,15 @@ parser.add_argument("-mc_p", "--mc_prediction", type=int,
 parser.add_argument("-early_s", "--early_stop", type=int,
                     help="Indicates early stop")
 
+parser.add_argument("-reg", "--regularizers", type=int,
+                    help="Weight regularizers")
+
 
 arg = parser.parse_args()
 C = Config()
 C.set_enable_dropout(2)  # max_pool dropout type
+C.regularizers = bool(arg.regularizers)
+
 random.seed = C.seed
 np.random.seed = C.seed
 dataset_location = arg.dataset_location
@@ -88,7 +93,6 @@ else:
 C.IMG_HEIGHT, C.IMG_WIDTH, C.IMG_CHANNELS = X_train[0].shape[0], X_train[0].shape[1], X_train[0].shape[2]
 
 #set asside test set with mask for benchmarking results
-
 
 
 for e in range(C.n_experiments):
@@ -287,8 +291,8 @@ for e in range(C.n_experiments):
 test_results_mean_iou = test_results_mean_iou.mean(axis = 0)
 results_mean_iou = results_mean_iou.mean(axis = 0)
 
-test_result_file = script_file+"_test_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_.npy"
-result_file = script_file+"_train_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_.npy"
+test_result_file = script_file+"_test_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_"+str(C.regularizers)+"_.npy"
+result_file = script_file+"_train_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_"+str(C.regularizers)+"_.npy"
 
 np.save(results_location+'/'+test_result_file, test_results_mean_iou)
 np.save(results_location+'/'+result_file, results_mean_iou)
