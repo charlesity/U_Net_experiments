@@ -212,21 +212,29 @@ for e in range(C.n_experiments):
 
         addition_samples_indices = subsampled_indices[index_maximum] # subset of the indices with the maximum information
 
-        # print ("active x and y ", active_train_X.shape, active_train_y.shape)
+
         additional_samples_X = unlabeled_X[addition_samples_indices]
         additional_samples_y = unlabeled_y[addition_samples_indices]
-        # print (additional_samples_X.shape, additional_samples_y.shape)
 
-        # print(unlabeled_X.shape, unlabeled_y.shape)
+
+        print ("active x and y ", active_train_X.shape, active_train_y.shape)
+        print ("additional x and y ", additional_samples_X.shape, additional_samples_y.shape)
+        print ("Before delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
+
+
         unlabeled_X = np.delete(unlabeled_X, addition_samples_indices, axis=0)
         unlabeled_y = np.delete(unlabeled_y, addition_samples_indices, axis=0)
-        # print(unlabeled_X.shape, unlabeled_y.shape)
 
 
-        # print (active_train_X.shape, active_train_y.shape)
+
         active_train_X = np.append(active_train_X, additional_samples_X, axis=0)
 
         active_train_y = np.append(active_train_y, additional_samples_y, axis=0)
+
+        print ("active x and y after addition ", active_train_X.shape, active_train_y.shape)
+        print ("After delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
+        print ("Number of test samples ", X_test_with_mask.shape)
+
 
         if arg.re_initialize_weights == 0:
             net_instance.getModel().set_weights(current_weights)  #weight fine-tuning
