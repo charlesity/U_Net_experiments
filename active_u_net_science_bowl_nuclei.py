@@ -106,10 +106,12 @@ for e in range(C.n_experiments):
     y_test_mask = Y_train[mask_test_set_indices]
 
 
+
     ac_ind = int(C.initial_training_ratio * (X_train.shape[0] - ms))   #  (X_train.shape[0] - ms) becase new training set is X_train - number reserved as test set.
-    # print (ms, ac_ind)
     active_indices = all_indices[ms: (ms +ac_ind)].copy()
-    un_labeled_index = all_indices[ac_ind+ms:].copy()
+
+
+    un_labeled_index = all_indices[ms + ac_ind:].copy()
 
     active_train_X = X_train[active_indices]
     active_train_y = Y_train[active_indices]
@@ -142,11 +144,11 @@ for e in range(C.n_experiments):
 
 
     if arg.mc_prediction == 0:
-        test_pred_mask = net_instance.getModel().predict(X_test_with_mask)
         pred_mask = net_instance.getModel().predict(active_train_X)  #training sample prediction
+        test_pred_mask = net_instance.getModel().predict(X_test_with_mask)
     else:
-        test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
         pred_mask = net_instance.stochastic_predict(active_train_X, C)
+        test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
 
     # #uncomment to visualize results iteratively
     # fig = plt.figure(figsize=(4, 25))
@@ -169,22 +171,25 @@ for e in range(C.n_experiments):
     #     ax.imshow(p)
     #     ax.set_title('Predicted Mask Test')
     # plt.show()
+
+    #for training samples
+    p_train_y = pred_mask.ravel()
+    p_train_y[p_train_y >= C.mask_threshold] = 1
+    p_train_y[p_train_y < C.mask_threshold] = 0
+
+    # test predictions
     p_test = test_pred_mask.ravel()
     p_test[p_test >= C.mask_threshold] = 1
     p_test[p_test < C.mask_threshold] = 0
 
-    #for training samples
-    p = pred_mask.ravel()
-    p[p>= C.mask_threshold] = 1
-    p[p < C.mask_threshold] = 0
 
 
 
-    test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), test_pred_mask.ravel().astype(int))
-    mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), pred_mask.ravel().astype(int))
+    train_mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
+    test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
 
+    results_mean_iou[e][0] = train_mean_iou
     test_results_mean_iou[e][0] = test_mean_iou
-    results_mean_iou[e][0] = mean_iou
 
     if e == 0:
         num_samples.append(active_train_X.shape[0])
@@ -238,11 +243,11 @@ for e in range(C.n_experiments):
                                                   ,epochs=C.epoch)
 
         if arg.mc_prediction == 0:
-            test_pred_mask = net_instance.getModel().predict(X_test_with_mask)
             pred_mask = net_instance.getModel().predict(active_train_X)  #training sample prediction
+            test_pred_mask = net_instance.getModel().predict(X_test_with_mask)
         else:
-            test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
             pred_mask = net_instance.stochastic_predict(active_train_X, C)
+            test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
 
         #uncomment for iterative visualization
         # fig = plt.figure(figsize=(4, 25))
@@ -268,34 +273,35 @@ for e in range(C.n_experiments):
         # test_mean_iou = jaccard_similarity_score(y_test_mask.ravel(), test_pred_mask.ravel().astype(int))
         # print (round(test_mean_iou, 3))
 
+        #for training samples
+        p_train_y = pred_mask.ravel()
+        p_train_y[p_train_y >= C.mask_threshold] = 1
+        p_train_y[p_train_y < C.mask_threshold] = 0
+
+        # test predictions
         p_test = test_pred_mask.ravel()
         p_test[p_test >= C.mask_threshold] = 1
         p_test[p_test < C.mask_threshold] = 0
 
-        #for training samples
-        p = pred_mask.ravel()
-        p[p>= C.mask_threshold] = 1
-        p[p < C.mask_threshold] = 0
 
 
+        train_mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
+        test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
 
-        test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), test_pred_mask.ravel().astype(int))
-        mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), pred_mask.ravel().astype(int))
-
+        results_mean_iou[e][aquisitions+1] = train_mean_iou
         test_results_mean_iou[e][aquisitions+1] = test_mean_iou
-        results_mean_iou[e][aquisitions+1] = mean_iou
 
         if e == 0:
             num_samples.append(active_train_X.shape[0])
 
-test_results_mean_iou = test_results_mean_iou.mean(axis = 0)
 results_mean_iou = results_mean_iou.mean(axis = 0)
+test_results_mean_iou = test_results_mean_iou.mean(axis = 0)
 
-test_result_file = script_file+"_test_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_"+str(C.regularizers)+"_.npy"
 result_file = script_file+"_train_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_"+str(C.regularizers)+"_.npy"
+test_result_file = script_file+"_test_"+str(arg.q_type)+"_"+str(arg.re_initialize_weights)+"_"+str(arg.mc_prediction)+"_"+ str(C.early_stop)+"_"+str(C.regularizers)+"_.npy"
 
-np.save(results_location+'/'+test_result_file, test_results_mean_iou)
 np.save(results_location+'/'+result_file, results_mean_iou)
+np.save(results_location+'/'+test_result_file, test_results_mean_iou)
 np.save(results_location+'/'+"num_samples", np.array(num_samples))
 
 # plt.plot(num_samples,test_results_mean_iou, label ="Val Prediction")
