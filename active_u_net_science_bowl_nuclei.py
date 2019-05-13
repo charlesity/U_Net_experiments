@@ -292,7 +292,6 @@ for e in range(C.n_experiments):
         p_test[p_test < C.mask_threshold] = 0
 
 
-
         train_mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
         test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
 
