@@ -5,7 +5,7 @@ class Config:
         #Randomness parameters
         self.seed = 42
         self.n_experiments = 6
-        self.epoch = 100
+        self.epoch = 100 #
         self.batch_size = 32
         self.standard_dropout = 0.5
         self.max_pool_maxpool_dropout = 0.5
@@ -28,7 +28,7 @@ class Config:
         self.IMG_CHANNELS = 3
 
         self.initial_training_ratio = .01
-        self.num_active_queries = 15
+        self.num_active_queries = 15  # 15
         self.subsample_size = 100
         self.dropout_iterations = 50
         self.active_batch = 10

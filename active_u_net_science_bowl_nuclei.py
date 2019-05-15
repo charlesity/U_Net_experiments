@@ -199,42 +199,42 @@ for e in range(C.n_experiments):
     current_weights = net_instance.getModel().get_weights()
 
     for aquisitions in range(C.num_active_queries):
-        print (aquisitions, " active acquition ")
-        #randomly select from the unlabeled set
-        subsampled_indices = np.random.choice(unlabeled_X.shape[0], C.subsample_size)
+        print (aquisitions+1, " active acquition ", " experiment num ", e+1)
         if arg.q_type == 1:  # fully partial posterior query by dropout committee with KL
             print('bald acquition')
-            index_maximum=bald(net_instance, unlabeled_X[subsampled_indices], C)
+            index_maximum=bald(net_instance, unlabeled_X, C)
         else: #random
             print ('Random acquisition')
-            index_maximum = np.random.uniform(0, subsampled_indices.shape[0], C.active_batch).astype(np.int)
+            shuffled_indices = np.arange(unlabeled_X.shape[0])
+            np.random.shuffle(shuffled_indices)
+            index_maximum = shuffled_indices[:C.active_batch]
 
 
-        addition_samples_indices = subsampled_indices[index_maximum] # subset of the indices with the maximum information
+        additional_samples_X = unlabeled_X[index_maximum].copy() # most informative samples
+        additional_samples_y = unlabeled_y[index_maximum].copy() # get their corresponding mask
 
-
-        additional_samples_X = unlabeled_X[addition_samples_indices]
-        additional_samples_y = unlabeled_y[addition_samples_indices]
-
-
-        print ("active x and y ", active_train_X.shape, active_train_y.shape)
-        print ("additional x and y ", additional_samples_X.shape, additional_samples_y.shape)
         print ("Before delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
+        print ("Before delete Number of active x and y", active_train_X.shape, active_train_y.shape)
 
-
-        unlabeled_X = np.delete(unlabeled_X, addition_samples_indices, axis=0)
-        unlabeled_y = np.delete(unlabeled_y, addition_samples_indices, axis=0)
-
-
+        unlabeled_X = np.delete(unlabeled_X, index_maximum, axis=0)
+        unlabeled_y = np.delete(unlabeled_y, index_maximum, axis=0)
 
         active_train_X = np.append(active_train_X, additional_samples_X, axis=0)
-
         active_train_y = np.append(active_train_y, additional_samples_y, axis=0)
 
-        print ("active x and y after addition ", active_train_X.shape, active_train_y.shape)
         print ("After delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
-        print ("Number of test samples ", X_test_with_mask.shape)
+        print ("After delete Number of active x and y", active_train_X.shape, active_train_y.shape)
 
+        # #uncomment to visualized 9 informative unlabeled and informative samples
+        # fig = plt.figure(figsize=(4, 25))
+        # idx = 1
+        # num_rows = 5
+        # for i in range(additional_samples_X.shape[0]):
+        #     ax = fig.add_subplot(num_rows, 2, idx, xticks=[], yticks=[])
+        #     ax.imshow(additional_samples_X[i, :, :, :])
+        #     idx+=1
+        # fig.suptitle("Most informative samples")
+        # plt.show()
 
         if arg.re_initialize_weights == 0:
             net_instance.getModel().set_weights(current_weights)  #weight fine-tuning

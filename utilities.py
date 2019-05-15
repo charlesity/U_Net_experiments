@@ -77,13 +77,21 @@ def model_instance(C):
 
 
 
-def bald(net_instance, unlabled_x, C):
-    the_shape = np.append(unlabled_x.shape[0], C.output_shape)
+def bald(net_instance, unlabeled_X, C):
+    print ("parsed unlabeled shape ",unlabeled_X.shape)
+    shuffled_indices = np.arange(unlabeled_X.shape[0])
+    np.random.shuffle(shuffled_indices)
+    #take a subset of the unlabeled data
+    subsampled_indices = shuffled_indices[:C.subsample_size]
+    subsampled_unlabeled_X = unlabeled_X[subsampled_indices]
+
+    #calculate the acquition function using only subsampled_unlabeled_X
+    the_shape = np.append(subsampled_unlabeled_X.shape[0], C.output_shape)
     score_All = np.zeros(shape=(the_shape))
-    All_Entropy_Dropout = np.zeros(shape=unlabled_x.shape[0])
+    All_Entropy_Dropout = np.zeros(shape=subsampled_unlabeled_X.shape[0])
 
     for d in range(C.dropout_iterations):
-        dropout_score = net_instance.stochastic_foward_pass(unlabled_x)
+        dropout_score = net_instance.stochastic_foward_pass(subsampled_unlabeled_X)
         score_All = score_All + dropout_score
         Entropy_Per_Dropout = np.zeros((dropout_score.shape[0]))
         for i in range(dropout_score.shape[0]):
@@ -98,5 +106,8 @@ def bald(net_instance, unlabled_x, C):
         Avg_entropy[i] = entropy(Avg_Score[i].flatten())
 
     U_X = Avg_entropy - Avg_Dropout_Entropy
+    arg_max = U_X.argsort()[-C.active_batch:][::-1] # max indices within subsampled_unlabeled_X
 
-    return U_X.argsort()[-C.active_batch:][::-1]
+    #get the corresponding index the in unlabeled_X implicitly within subsampled_indices
+    max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
+    return max_info_indices
