@@ -213,8 +213,8 @@ for e in range(C.n_experiments):
         additional_samples_X = unlabeled_X[index_maximum].copy() # most informative samples
         additional_samples_y = unlabeled_y[index_maximum].copy() # get their corresponding mask
 
-        print ("Before delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
-        print ("Before delete Number of active x and y", active_train_X.shape, active_train_y.shape)
+        # print ("Before delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
+        # print ("Before delete Number of active x and y", active_train_X.shape, active_train_y.shape)
 
         unlabeled_X = np.delete(unlabeled_X, index_maximum, axis=0)
         unlabeled_y = np.delete(unlabeled_y, index_maximum, axis=0)
@@ -222,8 +222,8 @@ for e in range(C.n_experiments):
         active_train_X = np.append(active_train_X, additional_samples_X, axis=0)
         active_train_y = np.append(active_train_y, additional_samples_y, axis=0)
 
-        print ("After delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
-        print ("After delete Number of active x and y", active_train_X.shape, active_train_y.shape)
+        # print ("After delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
+        # print ("After delete Number of active x and y", active_train_X.shape, active_train_y.shape)
 
         # #uncomment to visualized 9 informative unlabeled and informative samples
         # fig = plt.figure(figsize=(4, 25))

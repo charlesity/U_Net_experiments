@@ -78,7 +78,7 @@ def model_instance(C):
 
 
 def bald(net_instance, unlabeled_X, C):
-    print ("parsed unlabeled shape ",unlabeled_X.shape)
+    # print ("parsed unlabeled shape ",unlabeled_X.shape)
     shuffled_indices = np.arange(unlabeled_X.shape[0])
     np.random.shuffle(shuffled_indices)
     #take a subset of the unlabeled data
