@@ -141,8 +141,6 @@ for e in range(C.n_experiments):
         history = net_instance.getModel().fit(active_train_X, active_train_y, validation_split=C.validation_split
                                               ,epochs=C.epoch)
 
-
-
     if arg.mc_prediction == 0:
         pred_mask = net_instance.getModel().predict(active_train_X)  #training sample prediction
         test_pred_mask = net_instance.getModel().predict(X_test_with_mask)
@@ -203,11 +201,16 @@ for e in range(C.n_experiments):
         if arg.q_type == 1:  # fully partial posterior query by dropout committee with KL
             print('bald acquition')
             index_maximum=bald(net_instance, unlabeled_X, C)
-        else: #random
+        elif arg.q_type == 2: #random
             print ('Random acquisition')
             shuffled_indices = np.arange(unlabeled_X.shape[0])
             np.random.shuffle(shuffled_indices)
             index_maximum = shuffled_indices[:C.active_batch]
+        elif arg.q_type == 3:
+            print ('Entropy with independent pixel assumptions')
+            index_maximum = independent_pixel_entropy(net_instance, unlabeled_X, C)
+        else:
+            exit()
 
 
         additional_samples_X = unlabeled_X[index_maximum].copy() # most informative samples
@@ -225,17 +228,23 @@ for e in range(C.n_experiments):
         # print ("After delete Number of unlabeled x and y", unlabeled_X.shape, unlabeled_y.shape)
         # print ("After delete Number of active x and y", active_train_X.shape, active_train_y.shape)
 
-        # #uncomment to visualized 9 informative unlabeled and informative samples
+        #uncomment to visualized 9 informative unlabeled and informative samples
         # fig = plt.figure(figsize=(4, 25))
-        # idx = 1
+        # idx = 0
         # num_rows = 5
-        # for i in range(additional_samples_X.shape[0]):
+        # for i in range(num_rows):
+        #     idx +=1
         #     ax = fig.add_subplot(num_rows, 2, idx, xticks=[], yticks=[])
         #     ax.imshow(additional_samples_X[i, :, :, :])
-        #     idx+=1
+        #     idx +=1
+        #     ax = fig.add_subplot(num_rows, 2, idx, xticks=[], yticks=[])
+        #     mask = net_instance.getModel().predict(np.expand_dims(additional_samples_X[i, :, :, :], axis=0))
+        #     print (mask.shape)
+        #     # exit()
+        #     ax.imshow(mask[0, :, :, 0])
         # fig.suptitle("Most informative samples")
         # plt.show()
-
+        #
         if arg.re_initialize_weights == 0:
             net_instance.getModel().set_weights(current_weights)  #weight fine-tuning
         else:

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import entropy
+from sklearn import preprocessing
 
 from tqdm import tqdm
 from itertools import chain
@@ -108,6 +109,32 @@ def bald(net_instance, unlabeled_X, C):
     U_X = Avg_entropy - Avg_Dropout_Entropy
     arg_max = U_X.argsort()[-C.active_batch:][::-1] # max indices within subsampled_unlabeled_X
 
+    #get the corresponding index the in unlabeled_X implicitly within subsampled_indices
+    max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
+    return max_info_indices
+
+def independent_pixel_entropy(net_instance, unlabeled_X, C):
+    # print ("parsed unlabeled shape ",unlabeled_X.shape)
+    shuffled_indices = np.arange(unlabeled_X.shape[0])
+    np.random.shuffle(shuffled_indices)
+    #take a subset of the unlabeled data
+    subsampled_indices = shuffled_indices[:C.subsample_size]
+    subsampled_unlabeled_X = unlabeled_X[subsampled_indices]
+
+    all_entropys = np.zeros(shape=(subsampled_unlabeled_X.shape[0]))
+    prediction_distribution = np.zeros(shape=(subsampled_unlabeled_X.shape[0],subsampled_unlabeled_X.shape[1]*subsampled_unlabeled_X.shape[2], C.dropout_iterations))
+    for d in range(C.dropout_iterations):
+        dropout_score = net_instance.stochastic_foward_pass(subsampled_unlabeled_X).reshape(subsampled_unlabeled_X.shape[0]
+                                                                                            ,subsampled_unlabeled_X.shape[1]*subsampled_unlabeled_X.shape[2])
+        prediction_distribution[:,:,d] = dropout_score
+
+    #calculate entropy per pixel predictions
+    lm_entropy = lambda d: entropy(d)
+    for i, images in enumerate(prediction_distribution):
+        result = np.array(list(map(lm_entropy, images)))
+        all_entropys[i] = result.sum() # sum of pixel entropies
+
+    arg_max = all_entropys.argsort()[-C.active_batch:][::-1]
     #get the corresponding index the in unlabeled_X implicitly within subsampled_indices
     max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
     return max_info_indices
