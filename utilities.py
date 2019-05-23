@@ -132,8 +132,8 @@ def independent_pixel_entropy(net_instance, unlabeled_X, C):
     lm_entropy = lambda d: entropy([d, 1-d]) # entropy of Bernoulli per pixel
     lm_entropy_pd = lambda pred_dist: np.sum(list(map(lm_entropy, pred_dist))) #sum of entropy prediction
     for i, images in enumerate(prediction_distribution):
-        result = np.sum(list(map(lm_entropy_pd, images)))
-        all_entropys[i] = result # sum of pixel entropies
+        result = np.array(list(map(lm_entropy_pd, images)))
+        all_entropys[i] = result.sum() # sum of pixel entropies
 
     arg_max = all_entropys.argsort()[-C.active_batch:][::-1]
     #get the corresponding index in unlabeled_X implicitly within subsampled_indices
