@@ -266,7 +266,7 @@ for e in range(C.n_experiments):
             pred_mask = net_instance.stochastic_predict(active_train_X, C)
             test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
 
-        exit()
+        
         #uncomment for iterative visualization
         # fig = plt.figure(figsize=(4, 25))
         # idx = 0
