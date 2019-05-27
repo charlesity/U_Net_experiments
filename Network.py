@@ -18,7 +18,7 @@ import numpy as np
 
 
 
-class Network(Model):
+class Network():
 
     def __init__(self, C):
         self.C = C
@@ -32,7 +32,7 @@ class Network(Model):
 
         s = Lambda(lambda x: x / 255) (inputs)
 
-        if C.regularizers:            
+        if C.regularizers:
             c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same'
                         ,kernel_regularizer=regularizers.l2(0.01)) (s)
 
