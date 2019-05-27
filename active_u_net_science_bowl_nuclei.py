@@ -19,7 +19,7 @@ import argparse
 
 from utilities import *
 from Network import *
-from sklearn.metrics import jaccard_similarity_score # for mean_iou
+from sklearn.metrics import jaccard_score # for mean_iou
 
 from keras.utils import plot_model
 
@@ -183,8 +183,8 @@ for e in range(C.n_experiments):
 
 
 
-    train_mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
-    test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
+    train_mean_iou = jaccard_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
+    test_mean_iou = jaccard_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
 
     results_mean_iou[e][0] = train_mean_iou
     test_results_mean_iou[e][0] = test_mean_iou
@@ -266,7 +266,7 @@ for e in range(C.n_experiments):
             pred_mask = net_instance.stochastic_predict(active_train_X, C)
             test_pred_mask = net_instance.stochastic_predict(X_test_with_mask, C)
 
-        
+
         #uncomment for iterative visualization
         # fig = plt.figure(figsize=(4, 25))
         # idx = 0
@@ -302,8 +302,8 @@ for e in range(C.n_experiments):
         p_test[p_test < C.mask_threshold] = 0
 
 
-        train_mean_iou = jaccard_similarity_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
-        test_mean_iou = jaccard_similarity_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
+        train_mean_iou = jaccard_score(active_train_y.ravel().astype(int), p_train_y.ravel().astype(int))
+        test_mean_iou = jaccard_score(y_test_mask.ravel().astype(int), p_test.ravel().astype(int))
 
         results_mean_iou[e][aquisitions+1] = train_mean_iou
         test_results_mean_iou[e][aquisitions+1] = test_mean_iou
