@@ -1,46 +1,65 @@
+from keras.layers import Input
+from keras import backend as K
+
 class Config:
 
-    def __init__(self):
+    def __init__(self, IMG_WIDTH = 64, IMG_HEIGHT = 64, IMG_CHANNELS = 3):
         # Set some parameters
         #Randomness parameters
         self.seed = 42
-        self.n_experiments = 6  # 6
-        self.epochs = 100 # 100
-        self.batch_size = 32
+        self.n_experiments = 10
+        self.epochs = 200
+        self.batch_size = 4
         self.standard_dropout = 0.5
         self.max_pool_maxpool_dropout = 0.5
+        self.randomSeed = 1
+
+
+        self.IMG_HEIGHT = IMG_HEIGHT
+        self.IMG_WIDTH = IMG_WIDTH
+        self.IMG_CHANNELS = IMG_CHANNELS
+        self.IMAGE_ORDERING = None
+
 
         # these parameters are not available until data is seen
+
+        self.num_classes = None
         self.TRAIN_PATH = None
         self.TEST_PATH = None
 
-        self.IMG_WIDTH = None
-        self.IMG_HEIGHT = None
-        self.IMG_CHANNELS = None
 
         #None Until argument is parsed
         self.enable_standard_dropout = None
         self.enable_maxpool_dropout = None
         self.output_shape = None
 
-        self.IMG_WIDTH = 128
-        self.IMG_HEIGHT = 128
-        self.IMG_CHANNELS = 3
-
+        self.steps_per_epoch_scale = 1
         self.initial_training_ratio = .01
-        self.num_active_queries = 15  # 15
+        self.num_active_queries = 15  # 15  #total number of active learning queries
         self.subsample_size = 100
         self.dropout_iterations = 50 # 50
-        self.active_batch = 20
+        self.active_batch = 10
 
-        self.mask_test_set_ratio = .15
-        self.mask_threshold = .9
+        self.mask_test_set_ratio = .35
+        self.mask_threshold = .6
 
-        self.validation_split = .3
 
         self.early_stop = 1
-        self.early_stop_patience = 10 # 10 percent of epoch
+        self.early_stop_patience = 25 # 10 percent of epoch
         self.regularizers = True
+
+
+        if K.image_data_format() == 'channels_first':
+            self.input_shape = (self.IMG_CHANNELS, self.IMG_HEIGHT, self.IMG_WIDTH)
+            self.IMAGE_ORDERING = 'channels_first'
+            self. MERGE_AXIS = 1
+        else:
+            self.input_shape = (self.IMG_HEIGHT, self.IMG_WIDTH, self.IMG_CHANNELS)
+            self.IMAGE_ORDERING = 'channels_last'
+            self. MERGE_AXIS = - 1
+
+        self.img_input = Input(shape=self.input_shape)
+
 
     def set_enable_dropout(self, argument):
         if argument == 0:
