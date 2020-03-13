@@ -32,6 +32,11 @@ import tensorflow as tf
 from Network import *
 
 
+def get_generator():
+    pass
+
+
+
 def switch_result_file(argument):
     switcher = {
         0: 'results_no_dropout',

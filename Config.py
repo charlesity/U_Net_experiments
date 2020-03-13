@@ -5,7 +5,7 @@ class Config:
         #Randomness parameters
         self.seed = 42
         self.n_experiments = 6  # 6
-        self.epoch = 100 # 100
+        self.epochs = 100 # 100
         self.batch_size = 32
         self.standard_dropout = 0.5
         self.max_pool_maxpool_dropout = 0.5
