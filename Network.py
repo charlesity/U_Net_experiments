@@ -1,8 +1,8 @@
 
 from keras.models import Model, load_model
-from keras.layers import Input, Activation, BatchNormalization
+from keras.layers import Input, Activation, BatchNormalization, UpSampling2D
 from keras.layers.core import Dropout, Lambda
-from keras.layers.convolutional import Conv2D, Conv2DTranspose
+from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import concatenate
 from keras import regularizers
@@ -36,7 +36,7 @@ class Network():
             x = Dropout(C.standard_dropout) (c1) if C.enable_standard_dropout else (x)
             x = (Activation('relu'))(x)
             x = (BatchNormalization())(x)
-            x = (MaxPooling2D((pool_size, pool_size), data_format=C.IMAGE_ORDERING))(x)
+            x = (MaxPooling2D((C.pool_size, C.pool_size), data_format=C.IMAGE_ORDERING))(x)
             x = Dropout(C.max_pool_maxpool_dropout) (x) if C.enable_maxpool_dropout else (x)
             levels.append(x)
 
@@ -56,8 +56,8 @@ class Network():
 
         #image reconstruction
         for index, d_filter in enumerate(decoder_filter_lists):
-            o = (UpSampling2D((2, 2), data_format=C.IMAGE_ORDERING))(o)
-            o = (concatenate([o, f4], axis=MERGE_AXIS))
+            o = (UpSampling2D((C.uppool_size, C.uppool_size), data_format=C.IMAGE_ORDERING))(o)
+            o = (concatenate([o, f4], axis=C.MERGE_AXIS))
             o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
             o = (BatchNormalization())(o)

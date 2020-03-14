@@ -55,11 +55,11 @@ class Config:
         if K.image_data_format() == 'channels_first':
             self.input_shape = (self.IMG_CHANNELS, self.IMG_HEIGHT, self.IMG_WIDTH)
             self.IMAGE_ORDERING = 'channels_first'
-            self. MERGE_AXIS = 1
+            self.MERGE_AXIS = 1
         else:
             self.input_shape = (self.IMG_HEIGHT, self.IMG_WIDTH, self.IMG_CHANNELS)
             self.IMAGE_ORDERING = 'channels_last'
-            self. MERGE_AXIS = - 1
+            self.MERGE_AXIS = - 1
 
         self.img_input = Input(shape=self.input_shape)
 
