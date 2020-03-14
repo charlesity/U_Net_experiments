@@ -70,7 +70,6 @@ def adjustData(img,mask,flag_multi_class,num_class):
 
 
 def get_colored_segmentation_image(seg_arr, n_classes ,colors=class_colors ):
-
     seg_arr = seg_arr.argmax(axis=2)
     output_height = seg_arr.shape[0]
     output_width = seg_arr.shape[1]

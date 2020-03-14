@@ -81,6 +81,9 @@ for i in range(C.n_experiments):
 
             model = model_instance(C).getModel()
 
+            model.summary()
+            exit()
+
             history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True, validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
 
             training_loss[i, j] += history.history['loss']

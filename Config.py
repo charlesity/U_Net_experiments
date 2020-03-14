@@ -13,6 +13,9 @@ class Config:
         self.standard_dropout = 0.5
         self.max_pool_maxpool_dropout = 0.5
         self.randomSeed = 1
+        self.kernel_size = 3
+        self.pool_size = 2
+        self.uppool_size = 2
 
 
         self.IMG_HEIGHT = IMG_HEIGHT
