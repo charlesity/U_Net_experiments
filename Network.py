@@ -21,7 +21,7 @@ import numpy as np
 class Network():
     def __init__(self, C):
 
-        encoder_filter_list = [64, 128, 256, 512, 1024]
+        encoder_filter_list = [64, 128, 256, 512]
         decoder_filter_lists = [512, 256, 128, 24]
         x = C.img_input
         levels = []
@@ -36,14 +36,15 @@ class Network():
             x = Dropout(C.standard_dropout) (c1) if C.enable_standard_dropout else (x)
             x = (Activation('relu'))(x)
             x = (BatchNormalization())(x)
+            levels.append(x)
             x = (MaxPooling2D((C.pool_size, C.pool_size), data_format=C.IMAGE_ORDERING))(x)
             x = Dropout(C.max_pool_maxpool_dropout) (x) if C.enable_maxpool_dropout else (x)
-            levels.append(x)
 
-        [f1, f2, f3, f4, f5] = levels
+        [f1, f2, f3, f4] = levels
         #decoders/image reconstruction layers
         # ground level
-        o = f5
+        o = f4
+        o = x
         o = (Conv2D(1024, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
@@ -53,22 +54,22 @@ class Network():
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
         o = (BatchNormalization())(o)
-
         #image reconstruction
         for index, d_filter in enumerate(decoder_filter_lists):
             o = (UpSampling2D((C.uppool_size, C.uppool_size), data_format=C.IMAGE_ORDERING))(o)
-            o = (concatenate([o, f4], axis=C.MERGE_AXIS))
-            o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
-            o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
-            o = (BatchNormalization())(o)
+            o = (concatenate([o, levels[-(index+1)]], axis=C.MERGE_AXIS))
 
             o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
             o = (BatchNormalization())(o)
 
-        o = Conv2D(n_classes, (3, 3), padding='same', data_format=C.IMAGE_ORDERING)(o)
-        self.model = Model(inputs=[inputs], outputs=[o])
-        self.model.compile(optimizer='adam', loss='binary_crossentropy', metrics=[self.mean_iou])
+            o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
+            o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
+            o = (BatchNormalization())(o)
+
+        o = Conv2D(C.num_classes, (3, 3), padding='same', data_format=C.IMAGE_ORDERING)(o)
+        self.model = Model(inputs=[C.img_input], outputs=[o])
+        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[self.mean_iou])
 
         #function for sampling committee member via forward passes
         self.f = K.function([self.model.layers[0].input, K.learning_phase()],[self.model.layers[-1].output])

@@ -16,6 +16,7 @@ class Config:
         self.kernel_size = 3
         self.pool_size = 2
         self.uppool_size = 2
+        self.num_classes = 2
 
 
         self.IMG_HEIGHT = IMG_HEIGHT
