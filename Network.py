@@ -45,12 +45,12 @@ class Network():
         # ground level
         o = f4
         o = x
-        o = (Conv2D(1024, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
+        o = (Conv2D(1024, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
         o = (BatchNormalization())(o)
 
-        o = (Conv2D(1024, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
+        o = (Conv2D(1024, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
         o = (BatchNormalization())(o)
@@ -59,17 +59,17 @@ class Network():
             o = (UpSampling2D((C.uppool_size, C.uppool_size), data_format=C.IMAGE_ORDERING))(o)
             o = (concatenate([o, levels[-(index+1)]], axis=C.MERGE_AXIS))
 
-            o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
+            o = (Conv2D(d_filter, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
             o = (BatchNormalization())(o)
 
-            o = (Conv2D(d_filter, (3, 3), padding='same', data_format=C.IMAGE_ORDERING))(o)
+            o = (Conv2D(d_filter, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
             o = (BatchNormalization())(o)
 
-        o = Conv2D(C.num_classes, (3, 3), padding='same', data_format=C.IMAGE_ORDERING)(o)
+        o = Conv2D(C.num_classes, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING)(o)
         self.model = Model(inputs=[C.img_input], outputs=[o])
-        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[self.mean_iou])
+        self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[self.dice_coef])
 
         #function for sampling committee member via forward passes
         self.f = K.function([self.model.layers[0].input, K.learning_phase()],[self.model.layers[-1].output])
@@ -88,6 +88,15 @@ class Network():
 
     def stochastic_foward_pass(self, x_unlabeled):
         return self.f((x_unlabeled, 1))[0]
+
+    def dice_coef(self, y_true, y_pred, smooth=1):
+        y_true_f = K.flatten(y_true)
+        y_pred_f = K.flatten(y_pred)
+        intersection = K.sum(y_true_f * y_pred_f)
+        return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+        # intersection = K.sum(y_true * y_pred, axis=[1,2,3])
+        # union = K.sum(y_true, axis=[1,2,3]) + K.sum(y_pred, axis=[1,2,3])
+        # return K.mean( (2. * intersection + smooth) / (union + smooth), axis=0)
 
     def mean_iou(self, y_true, y_pred):
         prec = []
