@@ -41,7 +41,6 @@ class Network():
             x = Dropout(C.max_pool_maxpool_dropout) (x) if C.enable_maxpool_dropout else (x)
 
         [f1, f2, f3, f4] = levels
-        #decoders/image reconstruction layers
         # ground level
         o = f4
         o = x
@@ -54,6 +53,7 @@ class Network():
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
         o = (BatchNormalization())(o)
+
         #image reconstruction
         for index, d_filter in enumerate(decoder_filter_lists):
             o = (UpSampling2D((C.uppool_size, C.uppool_size), data_format=C.IMAGE_ORDERING))(o)
@@ -68,6 +68,7 @@ class Network():
             o = (BatchNormalization())(o)
 
         o = Conv2D(C.num_classes, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING)(o)
+        o = (Activation('sigmoid'))(o)
         self.model = Model(inputs=[C.img_input], outputs=[o])
         self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[self.dice_coef])
 
@@ -89,22 +90,7 @@ class Network():
     def stochastic_foward_pass(self, x_unlabeled):
         return self.f((x_unlabeled, 1))[0]
 
-    def dice_coef(self, y_true, y_pred, smooth=1):
-        y_true_f = K.flatten(y_true)
-        y_pred_f = K.flatten(y_pred)
-        intersection = K.sum(y_true_f * y_pred_f)
-        return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-        # intersection = K.sum(y_true * y_pred, axis=[1,2,3])
-        # union = K.sum(y_true, axis=[1,2,3]) + K.sum(y_pred, axis=[1,2,3])
-        # return K.mean( (2. * intersection + smooth) / (union + smooth), axis=0)
-
-    def mean_iou(self, y_true, y_pred):
-        prec = []
-        for t in np.arange(0.9, 1.0, 0.5):
-            y_pred_ = tf.to_int32(y_pred > t)
-            score, up_opt = tf.metrics.mean_iou(y_true, y_pred_, 2)
-            K.get_session().run(tf.local_variables_initializer())
-            with tf.control_dependencies([up_opt]):
-                score = tf.identity(score)
-            prec.append(score)
-        return K.mean(K.stack(prec), axis=0)
+    def dice_coef(self, y_true, y_pred, smooth=1e-12):
+        intersection = K.sum(y_true * y_pred, axis=[1,2,3])
+        union = K.sum(y_true, axis=[1,2,3]) + K.sum(y_pred, axis=[1,2,3])
+        return K.mean( (2. * intersection + smooth) / (union + smooth), axis=0)
