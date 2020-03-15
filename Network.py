@@ -75,7 +75,7 @@ class Network():
         #function for sampling committee member via forward passes
         self.f = K.function([self.model.layers[0].input, K.learning_phase()],[self.model.layers[-1].output])
 
-        es = EarlyStopping(monitor='val_mean_iou', mode='min', verbose=1)
+        es = EarlyStopping(monitor='dice_coef', mode='min', verbose=1)
 
     def getModel(self):
         return self.model
