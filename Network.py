@@ -33,7 +33,7 @@ class Network():
             x = (BatchNormalization())(x)
 
             x = (Conv2D(e_filter, (C.kernel_size, C.kernel_size), data_format=C.IMAGE_ORDERING, padding='same'))(x)
-            x = Dropout(C.standard_dropout) (c1) if C.enable_standard_dropout else (x)
+            x = Dropout(C.standard_dropout) (x) if C.enable_standard_dropout else (x)
             x = (Activation('relu'))(x)
             x = (BatchNormalization())(x)
             levels.append(x)
@@ -68,7 +68,7 @@ class Network():
             o = (BatchNormalization())(o)
 
         o = Conv2D(C.num_classes, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING)(o)
-        o = (Activation('sigmoid'))(o)
+        o = (Activation('softmax'))(o)
         self.model = Model(inputs=[C.img_input], outputs=[o])
         self.model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[self.dice_coef])
 
