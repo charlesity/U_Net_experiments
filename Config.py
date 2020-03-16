@@ -3,12 +3,12 @@ from keras import backend as K
 
 class Config:
 
-    def __init__(self, IMG_WIDTH = 128, IMG_HEIGHT = 128, IMG_CHANNELS = 3):
+    def __init__(self, IMG_WIDTH = 64, IMG_HEIGHT = 64, IMG_CHANNELS = 3):
         # Set some parameters
         #Randomness parameters
         self.seed = 42
         self.n_experiments = 10
-        self.epochs = 5
+        self.epochs = 200
         self.batch_size = 4
         self.standard_dropout = 0.5
         self.max_pool_maxpool_dropout = 0.5

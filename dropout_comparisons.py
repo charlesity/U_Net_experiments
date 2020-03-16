@@ -112,7 +112,7 @@ for i in range(C.n_experiments):
             val_loss_mcmc[i, j] = mcmc_loss
             val_dice_coef_mcmc = mcmc_dice
 
-            exit()
+            # test images
             # test_img, test_mask = next(val_generator)
             # pred = model.predict(test_img)
             # pred_st = network.stochastic_predict(test_img, C)
@@ -140,9 +140,11 @@ for i in range(C.n_experiments):
 
 
 
+
+
 logs = {"training_loss": training_loss,
-        "val_loss": val_loss, "training_dice_coef":
-            training_dice_coef, "val_dice_coef":val_dice_coef,
+        "val_loss": val_loss, "val_loss_mcmc":val_loss_mcmc, "training_dice_coef":
+            training_dice_coef, "val_dice_coef":val_dice_coef, "val_dice_coef_mcmc":val_dice_coef_mcmc,
             "dataset_sizes_used": dataset_sizes_used,
             "num_experiments": C.n_experiments, "num_classes": C.num_classes}
-np.save("results/"+log_filename+parser.dropout_type, logs)
+np.save("results/"+log_filename+str(parser.dropout_type), logs)
