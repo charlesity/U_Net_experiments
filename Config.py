@@ -3,7 +3,7 @@ from keras import backend as K
 
 class Config:
 
-    def __init__(self, IMG_WIDTH = 64, IMG_HEIGHT = 64, IMG_CHANNELS = 3):
+    def __init__(self, IMG_WIDTH = 128, IMG_HEIGHT = 128, IMG_CHANNELS = 3):
         # Set some parameters
         #Randomness parameters
         self.seed = 42

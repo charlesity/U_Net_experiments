@@ -53,9 +53,14 @@ all_masks = glob.glob(dataset_location+'/train/label/*.png')
 # training_ratios = np.arange(.99, .01, -.10)
 training_ratios = [.33]
 training_loss = np.zeros((C.n_experiments, len(training_ratios), C.epochs))
+
 val_loss = np.zeros((C.n_experiments,len(training_ratios), C.epochs))
+val_loss_mcmc = np.zeros((C.n_experiments,len(training_ratios)))
+
 training_dice_coef = np.zeros((C.n_experiments,len(training_ratios), C.epochs))
 val_dice_coef = np.zeros((C.n_experiments,len(training_ratios), C.epochs))
+val_dice_coef_mcmc = np.zeros((C.n_experiments,len(training_ratios)))
+
 dataset_sizes_used = []
 
 for i in range(C.n_experiments):
@@ -63,7 +68,21 @@ for i in range(C.n_experiments):
         C.randomSeed= np.random.randint(10) # start with a random seed for each experiment so we get a random shuffle each time
         Train_images, Val_images, Train_masks, Val_masks = train_test_split(all_images, all_masks, test_size=0.33, random_state=C.randomSeed)
         Val_dataframe = pd.DataFrame(list(zip(Val_images, Val_masks)))
-        val_generator = get_generator(data_gen_args, Val_dataframe, C)
+
+        #prepare the sample images for the generators
+        img1 = cv2.imread(Val_images[0])
+        sample_images = np.zeros(shape=(2, *img1.shape))
+        sample_images[0] = img1
+        sample_images[1] = cv2.imread(Val_images[0])
+
+        msk1 = cv2.imread(Val_masks[0])
+        sample_mask = np.zeros(shape=(2, *msk1.shape))
+
+        sample_mask[0] = msk1
+        sample_mask[1] = cv2.imread(Val_masks[1])
+
+        #create the validation generator
+        val_generator = get_generator(data_gen_args, Val_dataframe, C, (sample_images, sample_mask))
 
         for j, ratio in enumerate(training_ratios):
 
@@ -75,25 +94,26 @@ for i in range(C.n_experiments):
             except:
                 continue #if empty train exception(most likely) then continue
             sub_train_dataframe = pd.DataFrame(list(zip(sub_train_images, sub_train_masks)))
-            sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C)
-            img = next(sub_train_generator)
+            sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C, (sample_images, sample_mask))
+
 
             network = model_instance(C)
             model = network.getModel()
 
-            history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True, validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
+            history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
+                                          ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
+            training_loss[i, j] = history.history['loss']
+            val_loss[i, j] = history.history['val_loss']
+            training_dice_coef[i, j] = history.history['dice_coef']
+            val_dice_coef[i, j] = history.history['val_dice_coef']
 
 
+            mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, (len(Val_images)//C.batch_size)+1)
+            val_loss_mcmc[i, j] = mcmc_loss
+            val_dice_coef_mcmc = mcmc_dice
 
-            training_loss[i, j] += history.history['loss']
-            val_loss[i, j] += history.history['val_loss']
-            training_dice_coef[i, j] += history.history['dice_coef']
-            val_dice_coef[i, j] += history.history['val_dice_coef']
-
-
-            network.stochastic_evaluate_generator(val_generator, C, 2)
-
-            test_img, test_mask = next(val_generator)
+            exit()
+            # test_img, test_mask = next(val_generator)
             # pred = model.predict(test_img)
             # pred_st = network.stochastic_predict(test_img, C)
             #
