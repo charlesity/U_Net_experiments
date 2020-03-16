@@ -50,8 +50,8 @@ all_images = glob.glob(dataset_location+'/train/image/*.png')
 all_masks = glob.glob(dataset_location+'/train/label/*.png')
 
 
-# training_ratios = np.arange(.99, .01, -.10)
-training_ratios = [.33]
+training_ratios = np.arange(.99, .01, -.10)
+# training_ratios = [.33]
 training_loss = np.zeros((C.n_experiments, len(training_ratios), C.epochs))
 
 val_loss = np.zeros((C.n_experiments,len(training_ratios), C.epochs))
