@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import entropy
 from sklearn import preprocessing
 
-import cynthonized_functions_sig #cythonized function
+# import cynthonized_functions_sig #cythonized function
 
 from tqdm import tqdm
 from itertools import chain
