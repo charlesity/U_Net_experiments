@@ -101,14 +101,14 @@ for i in range(C.n_experiments):
             model = network.getModel()
 
             history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
-                                          ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
+                                          ,validation_data = val_generator, validation_steps = 2*((len(Val_images)//C.batch_size)+1))
             training_loss[i, j] = history.history['loss']
             val_loss[i, j] = history.history['val_loss']
             training_dice_coef[i, j] = history.history['dice_coef']
             val_dice_coef[i, j] = history.history['val_dice_coef']
 
 
-            mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, (len(Val_images)//C.batch_size)+1)
+            mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, 2*((len(Val_images)//C.batch_size)+1))
             val_loss_mcmc[i, j] = mcmc_loss
             val_dice_coef_mcmc = mcmc_dice
 
