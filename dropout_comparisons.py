@@ -64,7 +64,6 @@ for i in range(C.n_experiments):
         Train_images, Val_images, Train_masks, Val_masks = train_test_split(all_images, all_masks, test_size=0.33, random_state=C.randomSeed)
         Val_dataframe = pd.DataFrame(list(zip(Val_images, Val_masks)))
         val_generator = get_generator(data_gen_args, Val_dataframe, C)
-        img = next(val_generator)
 
         for j, ratio in enumerate(training_ratios):
 
@@ -79,15 +78,37 @@ for i in range(C.n_experiments):
             sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C)
             img = next(sub_train_generator)
 
-            model = model_instance(C).getModel()
+            network = model_instance(C)
+            model = network.getModel()
 
             history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True, validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
+
+
 
             training_loss[i, j] += history.history['loss']
             val_loss[i, j] += history.history['val_loss']
             training_dice_coef[i, j] += history.history['dice_coef']
             val_dice_coef[i, j] += history.history['val_dice_coef']
 
+
+            network.stochastic_evaluate_generator(val_generator, C, 2)
+
+            test_img, test_mask = next(val_generator)
+            # pred = model.predict(test_img)
+            # pred_st = network.stochastic_predict(test_img, C)
+            #
+            # f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
+            # ax1.imshow(test_img[0,:,:,:])
+            # ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], 2))
+            # ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
+            #
+            #
+            # ax4.imshow(test_img[0,:,:,:])
+            # ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], 2))
+            # ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
+            #
+            # plt.show()
+            # exit()
             # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
             # ax1.plot(history.history['loss'], label = 'training loss')
             # ax1.plot(history.history['val_loss'], label ='val_loss')

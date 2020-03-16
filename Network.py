@@ -7,6 +7,8 @@ from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import concatenate
 from keras import regularizers
 from keras.callbacks import EarlyStopping
+from keras.losses import categorical_crossentropy
+from sklearn.metrics import log_loss
 from keras import backend as K
 K.clear_session()
 
@@ -80,12 +82,39 @@ class Network():
     def getModel(self):
         return self.model
 
-    def stochastic_predict(self, X_test, C):
-        shape = np.append([C.dropout_iterations, X_test.shape[0]], C.output_shape)
-        prediction_score = np.zeros(shape)
+    def stochastic_predict(self, test_imgs, C):
+        out_shape = self.model.layers[-1].output.get_shape().as_list()[1:]
+        pred_mask = np.zeros(shape = (test_imgs.shape[0], *out_shape))
         for i in range(C.dropout_iterations):
-            prediction_score[i] = self.f((X_test, 1))[0]
-        return prediction_score.mean(axis = 0)
+            pred_mask += self.f((test_imgs, 1))[0]
+        pred_mask /= C.dropout_iterations
+        return pred_mask
+
+    def stochastic_evaluate_generator(self, generator, C, steps=None):
+        loss_all = np.array([])
+        dice_coef = np.array([])
+        for i in range(steps):
+            img, mask = next(generator)
+            mask = mask.reshape(mask.shape[0], mask.shape[1]*mask.shape[2], mask.shape[3])
+            l= np.zeros(shape=(img.shape[0]))
+            d = np.zeros(shape=(img.shape[0]))
+            for i in range(C.dropout_iterations):
+                pred = self.f((img, 1))[0]
+                pred = pred.reshape(pred.shape[0], pred.shape[1]*pred.shape[2], pred.shape[3])
+                d += np.array([self.dice_coef_cpu(mask[j], pred[j]) for j in range(pred.shape[0])])
+                l += np.array([log_loss(mask[i], pred[i]) for i in range(pred.shape[0])])
+            d /= C.dropout_iterations
+            l /= C.dropout_iterations
+            dice_coef = np.append(dice_coef, d)
+            loss_all = np.append(loss_all, l)
+        return np.mean(loss_all), np.mean(dice_coef)
+
+    def dice_coef_cpu(self, y_true, y_pred, smooth=1e-12):
+        y_true_f = y_true.flatten()
+        y_pred_f = y_pred.flatten()
+        intersection = np.sum(y_true_f*y_pred_f)
+        union = np.sum(y_true_f) + np.sum(y_pred_f)
+        return  (2. * intersection + smooth)/(union + smooth)
 
     def stochastic_foward_pass(self, x_unlabeled):
         return self.f((x_unlabeled, 1))[0]
