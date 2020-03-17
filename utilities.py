@@ -16,6 +16,8 @@ from keras.preprocessing.image import ImageDataGenerator
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 # os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
+from keras.backend.tensorflow_backend import set_session, get_session, clear_session
+
 import sys
 
 
@@ -39,6 +41,13 @@ import random
 class_colors = [(random.randint(0, 255), random.randint(
     0, 255), random.randint(0, 255)) for _ in range(5000)]
 
+
+
+    # # use the same config as you used to create the session
+    # config = tensorflow.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 1
+    # config.gpu_options.visible_device_list = "0"
+    # set_session(tensorflow.Session(config=config))
 
 def switch_result_file(argument):
     switcher = {

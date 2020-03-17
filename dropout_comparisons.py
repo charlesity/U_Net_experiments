@@ -112,6 +112,7 @@ for i in range(C.n_experiments):
             val_loss_mcmc[i, j] = mcmc_loss
             val_dice_coef_mcmc = mcmc_dice
 
+            
             # test images
             # test_img, test_mask = next(val_generator)
             # pred = model.predict(test_img)
