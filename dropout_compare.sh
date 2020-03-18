@@ -1,3 +1,5 @@
+#!/bin/bash
+
 read -p "Enter number of experiments: " num_exp
 read -p "Enter dropout type (0: No dropout, 1: standard_dropout, 2: Max Pool dropout, 3: Both Max-Pool + Standard " dropout_type
 read -p "Enter Log Filename " log_filename
