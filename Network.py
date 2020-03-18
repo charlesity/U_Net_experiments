@@ -1,6 +1,6 @@
 
 from keras.models import Model, load_model
-from keras.layers import Input, Activation, BatchNormalization, UpSampling2D
+from keras.layers import Input, Activation, UpSampling2D
 from keras.layers.core import Dropout, Lambda
 from keras.layers.convolutional import Conv2D
 from keras.layers.pooling import MaxPooling2D
@@ -32,12 +32,11 @@ class Network():
             x = (Conv2D(e_filter, (C.kernel_size, C.kernel_size), data_format=C.IMAGE_ORDERING, padding='same'))(x)
             x = Dropout(C.standard_dropout) (x) if C.enable_standard_dropout else (x)
             x = (Activation('relu'))(x)
-            x = (BatchNormalization())(x)
 
             x = (Conv2D(e_filter, (C.kernel_size, C.kernel_size), data_format=C.IMAGE_ORDERING, padding='same'))(x)
             x = Dropout(C.standard_dropout) (x) if C.enable_standard_dropout else (x)
             x = (Activation('relu'))(x)
-            x = (BatchNormalization())(x)
+
             levels.append(x)
             x = (MaxPooling2D((C.pool_size, C.pool_size), data_format=C.IMAGE_ORDERING))(x)
             x = Dropout(C.max_pool_maxpool_dropout) (x) if C.enable_maxpool_dropout else (x)
@@ -49,12 +48,12 @@ class Network():
         o = (Conv2D(1024, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
-        o = (BatchNormalization())(o)
+
 
         o = (Conv2D(1024, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
         o = (Activation('relu'))(o)
-        o = (BatchNormalization())(o)
+
 
         #image reconstruction
         for index, d_filter in enumerate(decoder_filter_lists):
@@ -63,11 +62,9 @@ class Network():
 
             o = (Conv2D(d_filter, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
-            o = (BatchNormalization())(o)
 
             o = (Conv2D(d_filter, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
             o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
-            o = (BatchNormalization())(o)
 
         o = Conv2D(C.num_classes, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING)(o)
         o = (Activation('softmax'))(o)

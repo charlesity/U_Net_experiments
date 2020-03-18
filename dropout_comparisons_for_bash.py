@@ -30,7 +30,7 @@ parser.add_argument("-lf", "--log_filename",  required = True, help ="file name 
 parser.add_argument("-ep", "--epochs",  required = True, help ="Number of epochs")
 parser.add_argument("-dr_prob", "--dropout_prob",  required = True, help ="dropout_prob")
 parser.add_argument("-exp_index", "--experiment_index_number",  required = True, help ="Index number of experiment")
-
+parser.add_argument("-n_classes", "--num_classes",  required = True, help ="Number of classes")
 
 parser = parser.parse_args()
 log_filename = parser.log_filename
@@ -38,9 +38,9 @@ log_filename = parser.log_filename
 C = Config()
 
 C.set_enable_dropout(parser.dropout_type)
-C.epochs = parser.epochs
-C.standard_dropout = parser.dropout_prob
-C.num_classes = 2
+C.epochs = int(parser.epochs)
+C.standard_dropout = float(parser.dropout_prob)
+C.num_classes = int(parser.num_classes)
 dataset_location = parser.dataset_location
 
 #prepare data augmentation
@@ -153,10 +153,10 @@ theArrayLog = np.array({"training_loss": training_loss,
             "dataset_sizes_used": dataset_sizes_used, "num_classes": C.num_classes})
 
 try:
-    savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs+".npy", allow_pickle = True)
+    savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs)+".npy", allow_pickle = True)
     #append here
     theArrayLog = np.append(savedArrayLog, theArrayLog)
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs, theArrayLog)
+    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs), theArrayLog)
 
 except IOError as e:
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs, theArrayLog)
+    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs), theArrayLog)
