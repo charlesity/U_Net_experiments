@@ -9,5 +9,5 @@ read -p "Dropout probability " drop_prob
 
 for ((i=1; i<=$num_exp; i++))
 do
-  python dropout_comparisons_for_bash.py -ds $dataset_location -dt $dropout_type -exp_index $i -lf $log_filename
+  python dropout_comparisons_for_bash.py -ds $dataset_location -dt $dropout_type -exp_index $i -lf $log_filename -ep $epochs -dr_prob $drop_prob
 done
