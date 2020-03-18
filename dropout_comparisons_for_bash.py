@@ -153,10 +153,10 @@ theArrayLog = np.array({"training_loss": training_loss,
             "dataset_sizes_used": dataset_sizes_used, "num_classes": C.num_classes})
 
 try:
-    savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+".npy", allow_pickle = True)
+    savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs+".npy", allow_pickle = True)
     #append here
     theArrayLog = np.append(savedArrayLog, theArrayLog)
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type), theArrayLog)
+    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs, theArrayLog)
 
 except IOError as e:
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type), theArrayLog)
+    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+C.standard_dropout+"_"+C.epochs, theArrayLog)
