@@ -97,7 +97,7 @@ for j, ratio in enumerate(training_ratios):
     try:
         #pick a subset of the training examples and train the model
         sub_train_images, _, sub_train_masks, _ = train_test_split(Train_images, Train_masks, test_size=ratio, random_state=C.randomSeed)
-        print ("Sub training number ", j+1, " of ", len(training_ratios), "sample sizes, in experiment number ", i+1)
+        print ("Sub training number ", j+1, " of ", len(training_ratios), "sample sizes, in experiment number ", i)
         dataset_sizes_used.append(len(sub_train_images))
     except:
         continue #if empty train exception(most likely) then continue
