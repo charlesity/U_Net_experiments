@@ -58,12 +58,12 @@ def switch_result_file(argument):
     }
     return switcher.get(argument, 'Invalid')
 
-def get_generator(data_gen_args, dataframe, C, sample_images):
+def get_generator(data_gen_args, dataframe, C):
     image_datagen = ImageDataGenerator(**data_gen_args)
     mask_datagen = ImageDataGenerator(**data_gen_args)
 
-    image_datagen.fit(sample_images[0],augment=True, seed= C.randomSeed)
-    mask_datagen.fit(sample_images[1],augment=True, seed= C.randomSeed)
+    # image_datagen.fit(sample_images[0],augment=True, seed= C.randomSeed)
+    # mask_datagen.fit(sample_images[1],augment=True, seed= C.randomSeed)
 
     image_generator  = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=0, batch_size=C.batch_size,  class_mode=None, seed= C.randomSeed)
     mask_generator = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=1, batch_size=C.batch_size, class_mode=None, seed= C.randomSeed)

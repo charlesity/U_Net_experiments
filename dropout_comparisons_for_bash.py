@@ -44,9 +44,7 @@ C.num_classes = int(parser.num_classes)
 dataset_location = parser.dataset_location
 
 #prepare data augmentation
-data_gen_args = dict(featurewise_center=True,
-                     featurewise_std_normalization=True,
-                     rotation_range= 90,
+data_gen_args = dict(rotation_range= 90,
                      width_shift_range=0.1,
                      height_shift_range=0.1,
                      horizontal_flip = True,
@@ -58,7 +56,7 @@ all_masks = glob.glob(dataset_location+'/train/label/*.png')
 
 
 training_ratios = np.arange(.99, .01, -.10)
-# training_ratios = [.33]
+# training_ratios = [.20]
 training_loss = np.zeros((len(training_ratios), C.epochs))
 
 val_loss = np.zeros((len(training_ratios), C.epochs))
@@ -67,6 +65,9 @@ val_loss_mcmc = np.zeros((len(training_ratios)))
 training_dice_coef = np.zeros((len(training_ratios), C.epochs))
 val_dice_coef = np.zeros((len(training_ratios), C.epochs))
 val_dice_coef_mcmc = np.zeros((len(training_ratios)))
+
+standard_loss = np.zeros((len(training_ratios), C.epochs))
+standard_dice = np.zeros((len(training_ratios), C.epochs))
 
 dataset_sizes_used = []
 
@@ -77,20 +78,9 @@ C.randomSeed= np.random.randint(10) # start with a random seed for each experime
 Train_images, Val_images, Train_masks, Val_masks = train_test_split(all_images, all_masks, test_size=0.33, random_state=C.randomSeed)
 Val_dataframe = pd.DataFrame(list(zip(Val_images, Val_masks)))
 
-#prepare the sample images for the generators
-img1 = cv2.imread(Val_images[0])
-sample_images = np.zeros(shape=(2, *img1.shape))
-sample_images[0] = img1
-sample_images[1] = cv2.imread(Val_images[0])
-
-msk1 = cv2.imread(Val_masks[0])
-sample_mask = np.zeros(shape=(2, *msk1.shape))
-
-sample_mask[0] = msk1
-sample_mask[1] = cv2.imread(Val_masks[1])
 
 #create the validation generator
-val_generator = get_generator(data_gen_args, Val_dataframe, C, (sample_images, sample_mask))
+val_generator = get_generator(data_gen_args, Val_dataframe, C)
 
 for j, ratio in enumerate(training_ratios):
 
@@ -102,26 +92,34 @@ for j, ratio in enumerate(training_ratios):
     except:
         continue #if empty train exception(most likely) then continue
     sub_train_dataframe = pd.DataFrame(list(zip(sub_train_images, sub_train_masks)))
-    sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C, (sample_images, sample_mask))
+    sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C)
+
+
 
 
     network = model_instance(C)
     model = network.getModel()
+    # model.summary()
 
     history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
-                                  ,validation_data = val_generator, validation_steps = 2*((len(Val_images)//C.batch_size)+1))
+                                  ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
     training_loss[j] = history.history['loss']
     val_loss[j] = history.history['val_loss']
     training_dice_coef[j] = history.history['dice_coef']
     val_dice_coef[j] = history.history['val_dice_coef']
 
 
-    mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, 2*((len(Val_images)//C.batch_size)+1))
+    mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, (len(Val_images)//C.batch_size)+1)
+    st_loss, st_dice = model.evaluate_generator(val_generator, steps=(len(Val_images)//C.batch_size)+1, use_multiprocessing=True)
     val_loss_mcmc[j] = mcmc_loss
-    val_dice_coef_mcmc = mcmc_dice
+    val_dice_coef_mcmc[j] = mcmc_dice
+    standard_loss[j] = st_loss
+    standard_dice[j] = st_dice
 
     # test images
+
     # test_img, test_mask = next(val_generator)
+    #
     # pred = model.predict(test_img)
     # pred_st = network.stochastic_predict(test_img, C)
     #
@@ -136,21 +134,28 @@ for j, ratio in enumerate(training_ratios):
     # ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
     #
     # plt.show()
-    # exit()
+    # print (mcmc_loss, mcmc_dice, st_loss, st_dice)
+    #
+    #
     # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
     # ax1.plot(history.history['loss'], label = 'training loss')
     # ax1.plot(history.history['val_loss'], label ='val_loss')
+    # ax1.set_yscale('log')
     # ax1.legend()
     #
     # ax2.plot(history.history['dice_coef'], label = 'training_dice_coef')
     # ax2.plot(history.history['val_dice_coef'], label = 'val_dice_coef')
+    # ax2.set_yscale('log')
     # ax2.legend()
+    #
+    # plt.show()
+    #
 
 
 theArrayLog = np.array({"training_loss": training_loss,
         "val_loss": val_loss, "val_loss_mcmc":val_loss_mcmc, "training_dice_coef":
             training_dice_coef, "val_dice_coef":val_dice_coef, "val_dice_coef_mcmc":val_dice_coef_mcmc,
-            "dataset_sizes_used": dataset_sizes_used, "num_classes": C.num_classes})
+            "dataset_sizes_used": dataset_sizes_used,"standard_loss":standard_loss, "standard_dice":standard_dice, "num_classes": C.num_classes})
 
 try:
     savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs)+".npy", allow_pickle = True)
