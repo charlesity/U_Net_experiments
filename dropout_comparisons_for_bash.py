@@ -118,38 +118,39 @@ for j, ratio in enumerate(training_ratios):
 
     # test images
 
-    # test_img, test_mask = next(val_generator)
-    #
-    # pred = model.predict(test_img)
-    # pred_st = network.stochastic_predict(test_img, C)
-    #
-    # f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
-    # ax1.imshow(test_img[0,:,:,:])
-    # ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], 2))
-    # ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
-    #
-    #
-    # ax4.imshow(test_img[0,:,:,:])
-    # ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], 2))
-    # ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
-    #
-    # plt.show()
-    # print (mcmc_loss, mcmc_dice, st_loss, st_dice)
-    #
-    #
-    # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-    # ax1.plot(history.history['loss'], label = 'training loss')
-    # ax1.plot(history.history['val_loss'], label ='val_loss')
-    # ax1.set_yscale('log')
-    # ax1.legend()
-    #
-    # ax2.plot(history.history['dice_coef'], label = 'training_dice_coef')
-    # ax2.plot(history.history['val_dice_coef'], label = 'val_dice_coef')
-    # ax2.set_yscale('log')
-    # ax2.legend()
-    #
-    # plt.show()
-    #
+    test_img, test_mask = next(val_generator)
+
+    pred = model.predict(test_img)
+    pred_st = network.stochastic_predict(test_img, C)
+
+    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
+    ax1.imshow(test_img[0,:,:,:])
+    ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], 2))
+    ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
+
+
+    ax4.imshow(test_img[0,:,:,:])
+    ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], 2))
+    ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
+
+    plt.show()
+    print (mcmc_loss, mcmc_dice, st_loss, st_dice)
+
+
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    ax1.plot(history.history['loss'], label = 'training loss')
+    ax1.plot(history.history['val_loss'], label ='val_loss')
+    ax1.set_yscale('log')
+    ax1.legend()
+
+    ax2.plot(history.history['dice_coef'], label = 'training_dice_coef')
+    ax2.plot(history.history['val_dice_coef'], label = 'val_dice_coef')
+    ax2.set_yscale('log')
+    ax2.legend()
+
+    plt.show()
+    exit()
+
 
 
 theArrayLog = np.array({"training_loss": training_loss,
