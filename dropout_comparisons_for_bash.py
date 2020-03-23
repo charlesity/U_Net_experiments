@@ -51,12 +51,12 @@ data_gen_args = dict(rotation_range= 90,
                      vertical_flip = True,
                      zoom_range=0.2)
 
-all_images = glob.glob(dataset_location+'/train/image/*.png')
-all_masks = glob.glob(dataset_location+'/train/label/*.png')
+all_images = glob.glob(dataset_location+'/image/*.png')
+all_masks = glob.glob(dataset_location+'/label/*.png')
 
 
-training_ratios = np.arange(.99, .01, -.10)
-# training_ratios = [.20]
+# training_ratios = np.arange(.99, .01, -.10)
+training_ratios = [.20]
 training_loss = np.zeros((len(training_ratios), C.epochs))
 
 val_loss = np.zeros((len(training_ratios), C.epochs))
@@ -123,10 +123,12 @@ for j, ratio in enumerate(training_ratios):
     pred = model.predict(test_img)
     pred_st = network.stochastic_predict(test_img, C)
 
+
     f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
     ax1.imshow(test_img[0,:,:,:])
     ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], 2))
     ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
+
 
 
     ax4.imshow(test_img[0,:,:,:])
