@@ -58,12 +58,9 @@ def switch_result_file(argument):
     }
     return switcher.get(argument, 'Invalid')
 
-def get_generator(data_gen_args, dataframe, C):
-    image_datagen = ImageDataGenerator(**data_gen_args)
-    mask_datagen = ImageDataGenerator(**data_gen_args)
-
-    # image_datagen.fit(sample_images[0],augment=True, seed= C.randomSeed)
-    # mask_datagen.fit(sample_images[1],augment=True, seed= C.randomSeed)
+def get_generator(dataframe, C):
+    image_datagen = ImageDataGenerator()
+    mask_datagen = ImageDataGenerator()
 
     image_generator  = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=0, batch_size=C.batch_size,  class_mode=None, seed= C.randomSeed)
     mask_generator = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=1, batch_size=C.batch_size, color_mode='grayscale', class_mode=None, seed= C.randomSeed)
@@ -76,15 +73,18 @@ def get_generator(data_gen_args, dataframe, C):
 def adjustData(img,mask,num_class):
     img = img / 255
     mask = mask[:,:,:,0] if(len(mask.shape) == 4) else mask[:,:,0]
-    mask = mask /255
-    return img, to_categorical(mask, num_class)
+
+    if (num_class) <= 2:
+        mask /= 255
+        return img, to_categorical(mask.astype(np.uint8), 2) # possible range of pixel values
+    else:
+        return img,to_categorical(mask.astype(np.uint8), num_class)
 
 
 def get_colored_segmentation_image(seg_arr, n_classes ,colors=class_colors ):
     seg_arr = seg_arr.argmax(axis=2)
     output_height = seg_arr.shape[0]
     output_width = seg_arr.shape[1]
-
     seg_img = np.zeros((output_height, output_width, 3))
 
     for c in range(n_classes):

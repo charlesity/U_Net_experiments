@@ -40,19 +40,16 @@ C = Config()
 C.set_enable_dropout(parser.dropout_type)
 C.epochs = int(parser.epochs)
 C.standard_dropout = float(parser.dropout_prob)
-C.num_classes = int(parser.num_classes)
+if (int(parser.num_classes) <= 2):
+    C.num_classes = 2
+else:
+    C.num_classes = int(parser.num_classes)
+
 dataset_location = parser.dataset_location
 
-#prepare data augmentation
-data_gen_args = dict(rotation_range= 90,
-                     width_shift_range=0.1,
-                     height_shift_range=0.1,
-                     horizontal_flip = True,
-                     vertical_flip = True,
-                     zoom_range=0.2)
 
-all_images = glob.glob(dataset_location+'/image/*.png')
-all_masks = glob.glob(dataset_location+'/label/*.png')
+all_images = glob.glob(dataset_location+'/dataset/image/*.png')
+all_masks = glob.glob(dataset_location+'/dataset/label/*.png')
 
 
 # training_ratios = np.arange(.99, .01, -.10)
@@ -80,7 +77,7 @@ Val_dataframe = pd.DataFrame(list(zip(Val_images, Val_masks)))
 
 
 #create the validation generator
-val_generator = get_generator(data_gen_args, Val_dataframe, C)
+val_generator = get_generator(Val_dataframe, C)
 
 for j, ratio in enumerate(training_ratios):
 
@@ -92,7 +89,23 @@ for j, ratio in enumerate(training_ratios):
     except:
         continue #if empty train exception(most likely) then continue
     sub_train_dataframe = pd.DataFrame(list(zip(sub_train_images, sub_train_masks)))
-    sub_train_generator = get_generator(data_gen_args, sub_train_dataframe, C)
+    sub_train_generator = get_generator(sub_train_dataframe, C)
+
+
+    # #visualization images from generator
+    # for i in range ((len(sub_train_images)//C.batch_size)):
+    #     img, mask = next(sub_train_generator)
+    #     fig, ax = plt.subplots(img.shape[0],2)
+    #     for j in range(img.shape[0]):
+    #         m_coloured = get_colored_segmentation_image(mask[j], C.num_classes)
+    #         print ("maximum image pixel "+str(img[j].max()), "maximum mask pixel "+str(m_coloured.max()))
+    #         ax[j][0].imshow(img[j])
+    #         ax[j][1].imshow(m_coloured.astype(np.uint8))
+    #
+    #     plt.show()
+    # exit();
+    #
+
 
 
 
@@ -123,35 +136,34 @@ for j, ratio in enumerate(training_ratios):
     pred = model.predict(test_img)
     pred_st = network.stochastic_predict(test_img, C)
 
-
-    f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
-    ax1.imshow(test_img[0,:,:,:])
-    ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], 2))
-    ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
-
-
-
-    ax4.imshow(test_img[0,:,:,:])
-    ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], 2))
-    ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], 2))
-
-    plt.show()
-    print (mcmc_loss, mcmc_dice, st_loss, st_dice)
-
-
-    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-    ax1.plot(history.history['loss'], label = 'training loss')
-    ax1.plot(history.history['val_loss'], label ='val_loss')
-    ax1.set_yscale('log')
-    ax1.legend()
-
-    ax2.plot(history.history['dice_coef'], label = 'training_dice_coef')
-    ax2.plot(history.history['val_dice_coef'], label = 'val_dice_coef')
-    ax2.set_yscale('log')
-    ax2.legend()
-
-    plt.show()
-    exit()
+    # f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
+    # ax1.imshow(test_img[0,:,:,:])
+    # ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], C.num_classes))
+    # ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], C.num_classes))
+    #
+    #
+    #
+    # ax4.imshow(test_img[0,:,:,:])
+    # ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], C.num_classes))
+    # ax6.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], C.num_classes))
+    #
+    # plt.show()
+    # print (mcmc_loss, mcmc_dice, st_loss, st_dice)
+    #
+    #
+    # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    # ax1.plot(history.history['loss'], label = 'training loss')
+    # ax1.plot(history.history['val_loss'], label ='val_loss')
+    # ax1.set_yscale('log')
+    # ax1.legend()
+    #
+    # ax2.plot(history.history['dice_coef'], label = 'training_dice_coef')
+    # ax2.plot(history.history['val_dice_coef'], label = 'val_dice_coef')
+    # ax2.set_yscale('log')
+    # ax2.legend()
+    #
+    # plt.show()
+    # exit()
 
 
 

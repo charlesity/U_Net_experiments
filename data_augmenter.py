@@ -71,6 +71,7 @@ for i in range ((len(all_images)//C.batch_size) * ag_n):
 
 
         aug_counter += 1
+    # plt.show()
 
 
 test_img = cv.imread(dataset_location+"/label/"+"aug"+str(aug_counter-1)+".png")
