@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-ds", "--dataset_location",  required = True, help ="link to the datasource")
+parser.add_argument("-ag_n", "--augment_number",  required = True, help ="Augment by how many times")
+
 
 parser = parser.parse_args()
 
@@ -20,7 +22,7 @@ data_gen_args = dict(rotation_range= 90,
                      vertical_flip = True,
                      zoom_range=0.2)
 dataset_location = parser.dataset_location
-
+ag_n = int(parser.augment_number)
 all_images = glob.glob(dataset_location+'/image/*[0-9].png')
 all_masks = glob.glob(dataset_location+'/label/*[0-9].png')
 
@@ -51,7 +53,7 @@ mask_generator = image_datagen.flow_from_dataframe(dataset, target_size=(C.IMG_W
 generator = zip(image_generator, mask_generator)
 aug_counter = 0
 #augment the dataset 4 times
-for i in range ((len(all_images)//C.batch_size) * 4):
+for i in range ((len(all_images)//C.batch_size) * ag_n):
     img, mask = next(generator)
 
     # fig, ax = plt.subplots(img.shape[0],2)

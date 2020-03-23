@@ -66,15 +66,14 @@ def get_generator(data_gen_args, dataframe, C):
     # mask_datagen.fit(sample_images[1],augment=True, seed= C.randomSeed)
 
     image_generator  = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=0, batch_size=C.batch_size,  class_mode=None, seed= C.randomSeed)
-    mask_generator = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=1, batch_size=C.batch_size, class_mode=None, seed= C.randomSeed)
+    mask_generator = image_datagen.flow_from_dataframe(dataframe, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=1, batch_size=C.batch_size, color_mode='grayscale', class_mode=None, seed= C.randomSeed)
 
     generator = zip(image_generator, mask_generator)
-    flag_multi_class = True if C.num_classes > 2 else False
     for d in generator:
         yield adjustData(
-            d[0],d[1], flag_multi_class, C.num_classes)
+            d[0],d[1], C.num_classes)
 
-def adjustData(img,mask,flag_multi_class,num_class):
+def adjustData(img,mask,num_class):
     img = img / 255
     mask = mask[:,:,:,0] if(len(mask.shape) == 4) else mask[:,:,0]
     mask = mask /255
