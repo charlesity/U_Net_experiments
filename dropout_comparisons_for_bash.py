@@ -31,6 +31,8 @@ parser.add_argument("-ep", "--epochs",  required = True, help ="Number of epochs
 parser.add_argument("-dr_prob", "--dropout_prob",  required = True, help ="dropout_prob")
 parser.add_argument("-exp_index", "--experiment_index_number",  required = True, help ="Index number of experiment")
 parser.add_argument("-n_classes", "--num_classes",  required = True, help ="Number of classes")
+parser.add_argument("-f_ext", "--file_ext",  required = True, help ="File Extension")
+
 
 parser = parser.parse_args()
 log_filename = parser.log_filename
@@ -39,6 +41,7 @@ C = Config()
 
 C.set_enable_dropout(parser.dropout_type)
 C.epochs = int(parser.epochs)
+file_extension = parser.file_ext
 C.standard_dropout = float(parser.dropout_prob)
 if (int(parser.num_classes) <= 2):
     C.num_classes = 2
@@ -48,8 +51,8 @@ else:
 dataset_location = parser.dataset_location
 
 
-all_images = glob.glob(dataset_location+'/dataset/image/*.png')
-all_masks = glob.glob(dataset_location+'/dataset/label/*.png')
+all_images = glob.glob(dataset_location+'/dataset/image/*.'+file_extension)
+all_masks = glob.glob(dataset_location+'/dataset/label/*.'+file_extension)
 
 
 # training_ratios = np.arange(.99, .01, -.10)
