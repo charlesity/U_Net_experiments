@@ -7,7 +7,7 @@ read -p "Enter Dataset Location " dataset_location
 read -p "Number of Epochs " epochs
 read -p "Dropout probability " drop_prob
 read -p "Number of classes " n_classes
-read -p "File extension " f_ext
+read -p "Image file extension " f_ext
 
 
 
