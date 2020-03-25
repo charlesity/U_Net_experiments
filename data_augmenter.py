@@ -9,6 +9,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
+
+parser.add_argument("-f_ext", "--file_ext",  required = True, help ="File Extention")
 parser.add_argument("-ds", "--dataset_location",  required = True, help ="link to the datasource")
 parser.add_argument("-ag_n", "--augment_number",  required = True, help ="Augment by how many times")
 
@@ -23,8 +25,9 @@ data_gen_args = dict(rotation_range= 90,
                      zoom_range=0.2)
 dataset_location = parser.dataset_location
 ag_n = int(parser.augment_number)
-all_images = glob.glob(dataset_location+'/image/*[0-9].png')
-all_masks = glob.glob(dataset_location+'/label/*[0-9].png')
+file_extension = parser.file_ext
+all_images = glob.glob(dataset_location+'/image/*[0-9].'+file_extension)
+all_masks = glob.glob(dataset_location+'/label/*[0-9].'+file_extension)
 
 
 dataset = pd.DataFrame(list(zip(all_images, all_masks)))
@@ -56,6 +59,7 @@ aug_counter = 0
 for i in range ((len(all_images)//C.batch_size) * ag_n):
     img, mask = next(generator)
 
+    #uncomment relevant code to view images
     # fig, ax = plt.subplots(img.shape[0],2)
     for j in range(img.shape[0]):
         try:
@@ -65,9 +69,8 @@ for i in range ((len(all_images)//C.batch_size) * ag_n):
 
         except Exception as e:
             print (e)
-        print (np.unique(im), im.shape)
         # ax[j][0].imshow(img[j].astype(np.uint8))
-        # ax[j][1].imshow(mask[j].reshape(mask[j].shape[0], mask[j].shape[1]).astype(np.uint8))
+        # ax[j][1].imshow(im)
 
 
         aug_counter += 1
@@ -75,7 +78,6 @@ for i in range ((len(all_images)//C.batch_size) * ag_n):
 
 
 test_img = cv.imread(dataset_location+"/label/"+"aug"+str(aug_counter-1)+".png")
-# test_img = cv.imread(dataset_location+"/label/"+"aug"+str(100)+".png")
 test_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2GRAY)
 print(np.unique(test_img), test_img.shape)
 plt.imshow(test_img.astype(np.uint8))
