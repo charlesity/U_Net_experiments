@@ -56,8 +56,8 @@ all_masks = glob.glob(dataset_location+'/dataset/label/*.'+file_extension)
 
 
 
-# training_ratios = np.arange(.99, .01, -.10)
-training_ratios = [.20]
+training_ratios = np.arange(.99, .01, -.10)
+
 training_loss = np.zeros((len(training_ratios), C.epochs))
 
 val_loss = np.zeros((len(training_ratios), C.epochs))
