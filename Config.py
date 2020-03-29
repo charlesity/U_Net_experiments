@@ -42,7 +42,7 @@ class Config:
         self.num_active_queries = 15  # 15  #total number of active learning queries
         self.subsample_size = 100
         self.dropout_iterations = 50 # 50
-        self.active_batch = 10
+        self.active_batch = 2
 
         self.mask_test_set_ratio = .35
         self.mask_threshold = .6

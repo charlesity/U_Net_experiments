@@ -1,4 +1,3 @@
-
 #Charles I. Saidu
 import random
 import warnings
@@ -32,12 +31,14 @@ parser.add_argument("-dr_prob", "--dropout_prob",  required = True, help ="dropo
 parser.add_argument("-exp_index", "--experiment_index_number",  required = True, help ="Index number of experiment")
 parser.add_argument("-n_classes", "--num_classes",  required = True, help ="Number of classes")
 parser.add_argument("-f_ext", "--file_ext",  required = True, help ="File Extension")
-
+parser.add_argument("-ac_batch", "--active_batch",  required = True, help ="File Extension")
 
 parser = parser.parse_args()
 log_filename = parser.log_filename
 
 C = Config()
+
+C.active_batch = int(parser.active_batch)
 
 C.set_enable_dropout(parser.dropout_type)
 C.epochs = int(parser.epochs)
@@ -55,92 +56,115 @@ all_images = glob.glob(dataset_location+'/dataset/image/*.'+file_extension)
 all_masks = glob.glob(dataset_location+'/dataset/label/*.'+file_extension)
 
 
+val_loss = None
+val_loss_mcmc = None
 
-training_ratios = np.arange(.99, .01, -.10)
-training_loss = np.zeros((len(training_ratios), C.epochs))
+training_dice_coef = None
+val_dice_coef = None
+val_dice_coef_mcmc = None
 
-val_loss = np.zeros((len(training_ratios), C.epochs))
-val_loss_mcmc = np.zeros((len(training_ratios)))
+standard_loss = None
+standard_dice = None
 
-training_dice_coef = np.zeros((len(training_ratios), C.epochs))
-val_dice_coef = np.zeros((len(training_ratios), C.epochs))
-val_dice_coef_mcmc = np.zeros((len(training_ratios)))
-
-
-dataset_sizes_used = []
+dataset_sizes_used = None
 
 i = int(parser.experiment_index_number)
+
 
 print("Experiment number ", i)
 C.randomSeed= np.random.randint(10) # start with a random seed for each experiment so we get a random shuffle each time
 Train_images, Val_images, Train_masks, Val_masks = train_test_split(all_images, all_masks, test_size=0.33, random_state=C.randomSeed)
 Val_dataframe = pd.DataFrame(list(zip(Val_images, Val_masks)))
 
-
 #create the validation generator
 val_generator = get_generator(Val_dataframe, C)
 
-for j, ratio in enumerate(training_ratios):
+active_train_images = Train_images[:C.active_batch]
+active_train_masks = Train_masks[:C.active_batch]
 
-    try:
-        #pick a subset of the training examples and train the model
-        sub_train_images, _, sub_train_masks, _ = train_test_split(Train_images, Train_masks, test_size=ratio, random_state=C.randomSeed)
-        print ("Starting Sub training number ", j+1, " of ", len(training_ratios), "sample sizes, in experiment number ", i)
-        dataset_sizes_used.append(len(sub_train_images))
-        print(dataset_sizes_used)
-    except:
-        print("Exception caught on number of dataset")
-        continue #if empty train exception(most likely) then continue
-    sub_train_dataframe = pd.DataFrame(list(zip(sub_train_images, sub_train_masks)))
-    sub_train_generator = get_generator(sub_train_dataframe, C)
+#micmic unlabeled set with already labeled data
+unlabeled_images = Train_images[:C.active_batch]
+unlabeled_masks = Train_masks[:C.active_batch]
 
+first_result = True # needed to stackup logs after first active learning results
+while len(unlabeled_images) > 0:
+    unlabeled_scores = list()
+    active_train_dataframe = pd.DataFrame(list(zip(active_train_images, active_train_masks)))
+    active_train_generator = get_generator(active_train_dataframe, C)
 
-    # #visualization images from generator
-    # for i in range ((len(sub_train_images)//C.batch_size)):
-    #     img, mask = next(sub_train_generator)
+    unlabeled_dataframe = pd.DataFrame(list(zip(unlabeled_images, unlabeled_masks)))
+    unlabeled_generator = get_generator_with_filename(unlabeled_dataframe, C)
+
+    #uncomment to visualization images from generator with filenames
+    # for i in range ((len(active_train_images)//C.batch_size) +1):
+    #     img, mask, fn_imgs, fn_masks = next(unlabeled_generator)
     #     fig, ax = plt.subplots(img.shape[0],2)
     #     for j in range(img.shape[0]):
     #         m_coloured = get_colored_segmentation_image(mask[j], C.num_classes)
     #         print ("maximum image pixel "+str(img[j].max()), "maximum mask pixel "+str(m_coloured.max()))
     #         ax[j][0].imshow(img[j])
+    #         ax[j][0].title.set_text(fn_imgs[j][-12:])
     #         ax[j][1].imshow(m_coloured.astype(np.uint8))
+    #         ax[j][1].title.set_text(fn_masks[j][-12:])
     #
     #     plt.show()
-    # exit();
-    #
-
-
-
+    # exit()
 
 
     network = model_instance(C)
     model = network.getModel()
-    # model.summary()
-
-    history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
-                                  ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
-    training_loss[j] = history.history['loss']
-    val_loss[j] = history.history['val_loss']
-    training_dice_coef[j] = history.history['dice_coef']
-    val_dice_coef[j] = history.history['val_dice_coef']
-
-
-    mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, (len(Val_images)//C.batch_size)+1)
-    # st_loss, st_dice = model.evaluate_generator(val_generator, steps=(len(Val_images)//C.batch_size)+1, use_multiprocessing=True)
-    val_loss_mcmc[j] = mcmc_loss
-    val_dice_coef_mcmc[j] = mcmc_dice
-    print("Done with Sub training number ", j+1, " of ", len(training_ratios), "sample sizes, in experiment number ", i)
-
-    # test images
-    # test_img, test_mask = next(val_generator)
+    # # model.summary()
     #
+    history = model.fit_generator(generator = active_train_generator, steps_per_epoch=(len(active_train_dataframe)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
+                                  ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)
+
+    for it in range((len(active_train_dataframe)//C.batch_size) + 1):
+        img, _, fn_imgs, _ = next(unlabeled_generator)
+        out_shape = model.layers[-1].output.get_shape().as_list()[1:]
+        stochastic_predictions = np.zeros((C.dropout_iterations,img.shape[0], *out_shape))
+        for i in range(C.dropout_iterations):
+            stochastic_predictions[i] = network.stochastic_foward_pass(img)
+        print (stochastic_predictions.shape, stochastic_predictions[0, 0,:,:,:].shape)
+        exit()
+
+
+
+
+
+
+
+    # calculate acquitive query score for unlabeled set
+
+    # if first_result:
+    #     training_loss =history.history['loss']
+    #     val_loss = history['val_loss']]
+    #     first_result = False
+    # else:
+    #     training_loss =np.stack(training_loss, history.history['loss'])
+
+    # training_dice_coef[j] = history.history['dice_coef']
+    # val_dice_coef[j] = history.history['val_dice_coef']
+    #
+    #
+    # mcmc_loss, mcmc_dice = network.stochastic_evaluate_generator(val_generator, C, (len(Val_images)//C.batch_size)+1)
+    # st_loss, st_dice = model.evaluate_generator(val_generator, steps=(len(Val_images)//C.batch_size)+1, use_multiprocessing=True)
+    # val_loss_mcmc[j] = mcmc_loss
+    # val_dice_coef_mcmc[j] = mcmc_dice
+    # standard_loss[j] = st_loss
+    # standard_dice[j] = st_dice
+
+
+    # # test images
+    # test_img, test_mask = next(val_generator)
     # pred = model.predict(test_img)
     # pred_st = network.stochastic_predict(test_img, C)
-
+    #
     # f, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex= True, sharey = True)
     # ax1.imshow(test_img[0,:,:,:])
     # ax2.imshow(get_colored_segmentation_image(pred_st[0, :, :, :], C.num_classes))
     # ax3.imshow(get_colored_segmentation_image(test_mask[0, :, :, :], C.num_classes))
+    #
+    #
     #
     # ax4.imshow(test_img[0,:,:,:])
     # ax5.imshow(get_colored_segmentation_image(pred[0, :, :, :], C.num_classes))
@@ -148,6 +172,7 @@ for j, ratio in enumerate(training_ratios):
     #
     # plt.show()
     # print (mcmc_loss, mcmc_dice, st_loss, st_dice)
+    #
     #
     # f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
     # ax1.plot(history.history['loss'], label = 'training loss')
@@ -162,19 +187,3 @@ for j, ratio in enumerate(training_ratios):
     #
     # plt.show()
     # exit()
-
-# theArrayLog = np.array([("training_loss", training_loss),
-#         ("val_loss", val_loss), ("val_loss_mcmc", val_loss_mcmc), ("training_dice_coef",
-#             training_dice_coef), ("val_dice_coef",val_dice_coef), ("val_dice_coef_mcmc",val_dice_coef_mcmc),
-#             ("dataset_sizes_used", dataset_sizes_used), ("num_classes", C.num_classes)])
-theArrayLog = np.array([(training_loss),(val_loss), (val_loss_mcmc), (training_dice_coef), (val_dice_coef)
-        ,(val_dice_coef_mcmc),(dataset_sizes_used), (C.num_classes)])
-
-try:
-    savedArrayLog = np.load("./results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs)+".npy", allow_pickle = True)
-    #append here
-    savedArrayLog = np.vstack((savedArrayLog, theArrayLog))
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs), savedArrayLog)
-
-except IOError as e:
-    np.save("results/"+log_filename+"_"+str(parser.dropout_type)+"_"+str(C.standard_dropout)+"_"+str(C.epochs), theArrayLog)

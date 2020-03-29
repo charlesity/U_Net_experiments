@@ -35,19 +35,13 @@ K.clear_session()
 import tensorflow as tf
 
 from Network import *
+from DataFrameIteratorWithFilePath import *
 import random
 
 
 class_colors = [(random.randint(0, 255), random.randint(
     0, 255), random.randint(0, 255)) for _ in range(5000)]
 
-
-
-    # # use the same config as you used to create the session
-    # config = tensorflow.ConfigProto()
-    # config.gpu_options.per_process_gpu_memory_fraction = 1
-    # config.gpu_options.visible_device_list = "0"
-    # set_session(tensorflow.Session(config=config))
 
 def switch_result_file(argument):
     switcher = {
@@ -57,6 +51,19 @@ def switch_result_file(argument):
         3: 'result_both'
     }
     return switcher.get(argument, 'Invalid')
+
+
+def get_generator_with_filename(dataframe, C):
+    image_datagen = ImageDataGenerator()
+    mask_datagen = ImageDataGenerator()
+
+    image_generator = DataFrameIteratorWithFilePath(dataframe, image_data_generator=image_datagen, x_col=0, y_col="class", target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), batch_size=C.batch_size,  class_mode=None, seed= C.randomSeed)
+    mask_generator = DataFrameIteratorWithFilePath(dataframe, image_data_generator=mask_datagen, target_size=(C.IMG_WIDTH, C.IMG_HEIGHT), x_col=1, batch_size=C.batch_size, color_mode='grayscale', class_mode=None, seed= C.randomSeed)
+
+
+    generator = zip(image_generator, mask_generator)
+    for d in generator:
+        yield [*adjustData(d[0][0],d[1][0], C.num_classes), d[0][1], d[1][1]]
 
 def get_generator(dataframe, C):
     image_datagen = ImageDataGenerator()
