@@ -10,8 +10,6 @@ read -p "Number of classes " n_classes
 read -p "Image file extension " f_ext
 
 
-
-
 for ((i=1; i<=$num_exp; i++))
 do
   python dropout_comparisons_for_bash.py -ds $dataset_location -dt $dropout_type -exp_index $i -lf $log_filename -ep $epochs -dr_prob $drop_prob -n_classes $n_classes -f_ext $f_ext
