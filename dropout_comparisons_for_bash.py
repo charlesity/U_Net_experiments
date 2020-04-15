@@ -25,7 +25,7 @@ start_time = time.time()
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-ds", "--dataset_location",  required = True, help ="link to the datasource")
-parser.add_argument("-dt", "--dropout_type", type=int, required=True,   help="NoDropout=0, Standard dropout= 1, max_pool=2, Both=3")
+parser.add_argument("-dt", "--dropout_type", type=int, required=True,   help="BatNorm=0, Standard dropout= 1, max_pool=2, Both=3")
 parser.add_argument("-lf", "--log_filename",  required = True, help ="file name for the logs")
 parser.add_argument("-ep", "--epochs",  required = True, help ="Number of epochs")
 parser.add_argument("-dr_prob", "--dropout_prob",  required = True, help ="dropout_prob")
@@ -116,6 +116,8 @@ for j, ratio in enumerate(training_ratios):
     network = model_instance(C)
     model = network.getModel()
     # model.summary()
+    # exit()
+
 
     history = model.fit_generator(generator = sub_train_generator, steps_per_epoch=(len(sub_train_images)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
                                   ,validation_data = val_generator, validation_steps = (len(Val_images)//C.batch_size)+1)

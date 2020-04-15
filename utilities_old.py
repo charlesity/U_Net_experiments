@@ -38,9 +38,6 @@ from Network import *
 from DataFrameIteratorWithFilePath import *
 import random
 
-#custom design cython functions
-import cynthonized_functions
-
 
 class_colors = [(random.randint(0, 255), random.randint(
     0, 255), random.randint(0, 255)) for _ in range(5000)]
@@ -141,72 +138,93 @@ def model_instance(C):
     net_instance = Network(C)
     return net_instance
 
-def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generator, network, C):
-    #acquisition types
-    unlabeled_scores_dict = dict()
-    if acquisition_type == 1:
-        # fully partial posterior query by dropout committee with KL
-        print('Calculting entropy Acquisition')
-        for it in range(generator_range):
-            img, _, fn_imgs, _ = next(unlabeled_generator)
-            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            stochastic_predictions = np.zeros((img.shape[0], *out_shape))
-            for dropout_i in range(C.dropout_iterations):
-                stochastic_predictions += network.stochastic_foward_pass(img)
-            stochastic_predictions /= C.dropout_iterations
-            scores = cynthonized_functions.score_entropy(stochastic_predictions)
-            for score_index, s in enumerate(scores):
-                unlabeled_scores_dict[fn_imgs[score_index]] = s
-        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
-        print('Done calculting entropy Acquisition')
-    elif acquisition_type == 2:
-        print ("Calculating Bald Acquisition")
-        for it in range(generator_range):
-            img, _, fn_imgs, _ = next(unlabeled_generator)
-            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img)
-            standard_entropy_scores = cynthonized_functions.score_entropy(standard_prediction.astype(np.double))
-            stochastic_entropy_scores = np.zeros((img.shape[0]))
-            for dropout_i in range(C.dropout_iterations):
-                stochastic_entropy_scores += cynthonized_functions.score_entropy(network.stochastic_foward_pass(img).astype(np.double))
-            stochastic_entropy_scores /= C.dropout_iterations
-            bald_score = standard_entropy_scores - stochastic_entropy_scores
-            for score_index, s in enumerate(bald_score):
-                unlabeled_scores_dict[fn_imgs[score_index]] = s
-        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
-        print('Done Bald Acquisition')
-    elif acquisition_type == 3:
-        print ("Calculating Committee-KL  Acquisition")
-        for it in range(generator_range):
-            img, _, fn_imgs, _ = next(unlabeled_generator)
-            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img).astype(np.double)
-            stochastic_predictions = np.zeros((img.shape[0], *out_shape))
-            for dropout_i in range(C.dropout_iterations):
-                stochastic_predictions += network.stochastic_foward_pass(img)
-            stochastic_predictions /= C.dropout_iterations #average stochastic prediction
-            kl_score = cynthonized_functions.score_kl(standard_prediction, stochastic_predictions)
-            for score_index, s in enumerate(kl_score):
-                unlabeled_scores_dict[fn_imgs[score_index]] = s
-        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
-        print('Done Calculating Commitee-KL Acquisition')
 
-    elif acquisition_type == 4:
-        print ("Calculating Committee-Jensen  Acquisition")
-        for it in range(generator_range):
-            img, _, fn_imgs, _ = next(unlabeled_generator)
-            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img).astype(np.double)
-            stochastic_predictions = np.zeros((img.shape[0], *out_shape))
-            for dropout_i in range(C.dropout_iterations):
-                stochastic_predictions += network.stochastic_foward_pass(img)
-            stochastic_predictions /= C.dropout_iterations #average stochastic prediction
-            kl_score = cynthonized_functions.score_jensen(standard_prediction, stochastic_predictions)
-            for score_index, s in enumerate(kl_score):
-                unlabeled_scores_dict[fn_imgs[score_index]] = s
-        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
-        print('Done Calculating Commitee-KL Acquisition')
-    return unlabeled_scores_dict
+
+def bald(net_instance, unlabeled_X, C):
+    # print ("parsed unlabeled shape ",unlabeled_X.shape)
+    shuffled_indices = np.arange(unlabeled_X.shape[0])
+    np.random.shuffle(shuffled_indices)
+    #take a subset of the unlabeled data
+    subsampled_indices = shuffled_indices[:C.subsample_size]
+    subsampled_unlabeled_X = unlabeled_X[subsampled_indices]
+
+    #calculate the acquition function using only subsampled_unlabeled_X
+    the_shape = np.append(subsampled_unlabeled_X.shape[0], C.output_shape)
+    score_All = np.zeros(shape=(the_shape))
+    All_Entropy_Dropout = np.zeros(shape=subsampled_unlabeled_X.shape[0])
+
+    for d in range(C.dropout_iterations):
+        dropout_score = net_instance.stochastic_foward_pass(subsampled_unlabeled_X)
+        score_All = score_All + dropout_score
+        Entropy_Per_Dropout = np.zeros((dropout_score.shape[0]))
+        for i in range(dropout_score.shape[0]):
+            Entropy_Per_Dropout[i] = entropy(dropout_score[i].flatten())
+        All_Entropy_Dropout = All_Entropy_Dropout + Entropy_Per_Dropout # sum across all pixel entropies
+
+    Avg_Dropout_Entropy = np.divide(All_Entropy_Dropout, C.dropout_iterations)
+    Avg_Score = np.divide(score_All, C.dropout_iterations)
+    Avg_entropy = np.zeros((Avg_Score.shape[0]))
+
+    for i in range(Avg_entropy.shape[0]):
+        Avg_entropy[i] = entropy(Avg_Score[i].flatten())
+
+    U_X = Avg_entropy - Avg_Dropout_Entropy
+    arg_max = U_X.argsort()[-C.active_batch:][::-1] # max indices within subsampled_unlabeled_X
+
+    #get the corresponding index the in unlabeled_X implicitly within subsampled_indices
+    max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
+    return max_info_indices
+
+def independent_pixel_entropy(net_instance, unlabeled_X, C):
+    # print ("parsed unlabeled shape ",unlabeled_X.shape)
+    shuffled_indices = np.arange(unlabeled_X.shape[0])
+    np.random.shuffle(shuffled_indices)
+    #take a subset of the unlabeled data
+    subsampled_indices = shuffled_indices[:C.subsample_size]
+    subsampled_unlabeled_X = unlabeled_X[subsampled_indices]
+
+    # all_entropys = np.zeros(shape=(subsampled_unlabeled_X.shape[0]))
+    # prediction_distribution = np.zeros(shape=(len(subsampled_unlabeled_X), *C.output_shape, C.dropout_iterations))
+    prediction_distribution = np.zeros(shape=(len(subsampled_unlabeled_X), subsampled_unlabeled_X.shape[1]*subsampled_unlabeled_X.shape[2], C.dropout_iterations))
+
+    for inter in range(C.dropout_iterations):
+        dropout_score = net_instance.stochastic_foward_pass(subsampled_unlabeled_X).reshape(subsampled_unlabeled_X.shape[0]
+                                                                                            ,subsampled_unlabeled_X.shape[1]*subsampled_unlabeled_X.shape[2])
+        # dropout_score = net_instance.stochastic_foward_pass(subsampled_unlabeled_X)
+        # prediction_distribution[:,:,:,:, inter] = dropout_score
+        prediction_distribution[:,:, inter] = dropout_score
+
+    # prediction_distribution = prediction_distribution.mean(axis = 4)
+    all_entropys = cynthonized_functions_sig.score_entropy_sig(prediction_distribution)
+    arg_max = all_entropys.argsort()[-C.active_batch:][::-1]
+    #get the corresponding index in unlabeled_X implicitly within subsampled_indices
+    max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
+    return max_info_indices
+
+def independent_pixel_entropy_generator(net_instance, unlabeled_X, C, frame_location, mask_location, image_shape, output_shape):
+
+    # print ("parsed unlabeled shape ",unlabeled_X.shape)
+    shuffled_indices = np.arange(unlabeled_X.shape[0])
+    np.random.shuffle(shuffled_indices)
+    #take a subset of the unlabeled data
+    subsampled_indices = shuffled_indices[:C.subsample_size]
+    subsampled_unlabeled_X = unlabeled_X[subsampled_indices]
+
+    sub_sample_gen = data_gen(frame_location, mask_location, image_shape, output_shape, subsampled_unlabeled_X, subsampled_unlabeled_X, batch_size = len(subsampled_unlabeled_X))
+    subSampledData_X, _ = next(sub_sample_gen)
+    # all_entropys = np.zeros(shape=(subsampled_unlabeled_X.shape[0]))
+    prediction_distribution = np.zeros(shape=(subSampledData_X.shape[0],subSampledData_X.shape[1]*subSampledData_X.shape[2], C.dropout_iterations))
+    for d in range(C.dropout_iterations):
+        dropout_score = net_instance.stochastic_foward_pass(subSampledData_X).reshape(subSampledData_X.shape[0]
+                                                                                            ,subSampledData_X.shape[1]*subSampledData_X.shape[2])
+        prediction_distribution[:,:,d] = dropout_score
+
+
+    all_entropys = cynthonized_functions_sig.score_entropy_sig(prediction_distribution)
+    arg_max = all_entropys.argsort()[-C.active_batch:][::-1]
+    #get the corresponding index in unlabeled_X implicitly within subsampled_indices
+    max_info_indices = subsampled_indices[arg_max] # their corresponding index values with the most information
+    return max_info_indices
 
 
 def mean_iou(y_true, y_pred):

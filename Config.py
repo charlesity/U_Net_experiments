@@ -49,7 +49,7 @@ class Config:
 
 
         self.early_stop = 1
-        self.early_stop_patience = 25 # 10 percent of epoch
+        self.early_stop_patience = 50 # 10 percent of epoch
         self.regularizers = True
 
 
