@@ -164,7 +164,7 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
         for it in range(generator_range):
             img, _, fn_imgs, _ = next(unlabeled_generator)
             out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img)
+            standard_prediction = network.getModel().predict(img)
             standard_entropy_scores = cynthonized_functions.score_entropy(standard_prediction.astype(np.double))
             stochastic_entropy_scores = np.zeros((img.shape[0]))
             for dropout_i in range(C.dropout_iterations):
@@ -180,7 +180,7 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
         for it in range(generator_range):
             img, _, fn_imgs, _ = next(unlabeled_generator)
             out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img).astype(np.double)
+            standard_prediction = network.getModel().predict(img).astype(np.double)
             stochastic_predictions = np.zeros((img.shape[0], *out_shape))
             for dropout_i in range(C.dropout_iterations):
                 stochastic_predictions += network.stochastic_foward_pass(img)
@@ -196,7 +196,7 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
         for it in range(generator_range):
             img, _, fn_imgs, _ = next(unlabeled_generator)
             out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
-            standard_prediction = model.predict(img).astype(np.double)
+            standard_prediction = network.getModel().predict(img).astype(np.double)
             stochastic_predictions = np.zeros((img.shape[0], *out_shape))
             for dropout_i in range(C.dropout_iterations):
                 stochastic_predictions += network.stochastic_foward_pass(img)
@@ -205,7 +205,7 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
             for score_index, s in enumerate(kl_score):
                 unlabeled_scores_dict[fn_imgs[score_index]] = s
         unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
-        print('Done Calculating Commitee-KL Acquisition')
+        print('Done Calculating Committee-Jensen')
     return unlabeled_scores_dict
 
 

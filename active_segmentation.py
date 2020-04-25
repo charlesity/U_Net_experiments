@@ -76,12 +76,13 @@ print("Experiment number ", exp_index_num)
 
 #log selected image files
 try:
-    Val_dataframe = pd.read_pickle("./active_dataframe_log/"+log_filename+"_val_dataframe_"+str(exp_index_num)+".pkl")
-    active_train_dataframe = pd.read_pickle("./active_dataframe_log/"+log_filename+"_active_train_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
-    unlabeled_dataframe= pd.read_pickle("./active_dataframe_log/"+log_filename+"_unlabeled_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
+    Val_dataframe = pd.read_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+"_val_dataframe_"+".pkl")
+    active_train_dataframe = pd.read_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_active_train_dataframe_"+".pkl")
+    unlabeled_dataframe= pd.read_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_unlabeled_dataframe_"+".pkl")
     print ("DataFrames Available")
 except Exception as e:
     print ("DataFrames NOT Available")
+    print(e)
     if active_acquisition_index > 0:
         print("No more unlabeled Dataset")
         exit()
@@ -101,9 +102,9 @@ except Exception as e:
     active_train_dataframe = pd.DataFrame(list(zip(active_train_images, active_train_masks)))
     unlabeled_dataframe = pd.DataFrame(list(zip(unlabeled_images, unlabeled_masks)))
 
-    Val_dataframe.to_pickle("./active_dataframe_log/"+log_filename+"_val_dataframe_"+str(exp_index_num)+".pkl")
-    active_train_dataframe.to_pickle("./active_dataframe_log/"+log_filename+"_active_train_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
-    unlabeled_dataframe.to_pickle("./active_dataframe_log/"+log_filename+"_unlabeled_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
+    Val_dataframe.to_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+"_val_dataframe_"+".pkl")
+    active_train_dataframe.to_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_active_train_dataframe_"+".pkl")
+    unlabeled_dataframe.to_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_unlabeled_dataframe_"+".pkl")
 
     first_Training = True
 
@@ -143,22 +144,18 @@ if first_Training:
     history = model.fit_generator(generator = active_train_generator, steps_per_epoch=(len(active_train_dataframe)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
                                   ,validation_data = val_generator, validation_steps = (len(Val_dataframe)//C.batch_size)+1, callbacks=[es])
     #save_the_model
-    model.save_weights("./stored_weights/"+log_filename+"_weights_"+str(exp_index_num)+".h5")
+    model.save_weights("./stored_weights/"+log_filename+"_weights_"+str(parser.dropout_type)+str(acquisition_type)+".h5")
 
     unlabeled_scores_dict = score_unlabeled_images(acquisition_type,(len(unlabeled_dataframe)//C.batch_size) + 1, unlabeled_generator, network, C)
 
 else:
     try:
-        active_train_dataframe = pd.read_pickle("./active_dataframe_log/"+log_filename+"_active_train_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
-        unlabeled_dataframe= pd.read_pickle("./active_dataframe_log/"+log_filename+"_unlabeled_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
 
         unlabeled_generator = get_generator_with_filename(unlabeled_dataframe, C)
         active_train_generator = get_generator(active_train_dataframe, C)
         dataset_sizes_used.append(len(active_train_dataframe))
 
-        if(len(unlabeled_dataframe)>0):
-            unlabeled_scores_dict = score_unlabeled_images(acquisition_type,(len(unlabeled_dataframe)//C.batch_size) + 1, unlabeled_generator, network, C)
-        else:
+        if(len(unlabeled_dataframe)<=0):
             print("Exiting Program because there are no unlabeled images. Number is ", len(unlabeled_dataframe))
             exit()
 
@@ -169,12 +166,14 @@ else:
         else:
             # #fine tune weights model by loading previous weights
             print("Loaded weight is ", "./stored_weights/"+log_filename+"_weights_"+str(exp_index_num)+".h5")
-            model.load_weights("./stored_weights/"+log_filename+"_weights_"+str(exp_index_num)+".h5")
+            model.load_weights("./stored_weights/"+log_filename+"_weights_"+str(parser.dropout_type)+str(acquisition_type)+".h5")
             history = model.fit_generator(generator = active_train_generator, steps_per_epoch=(len(active_train_dataframe)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
                                       ,validation_data = val_generator, validation_steps = (len(Val_dataframe)//C.batch_size)+1, callbacks=[es])
         #save_the_model
-        model.save_weights("./stored_weights/"+log_filename+"_weights_"+str(exp_index_num)+".h5")
+        model.save_weights("./stored_weights/"+log_filename+"_weights_"+str(parser.dropout_type)+str(acquisition_type)+".h5")
         #score the unlabeled dataset
+
+        unlabeled_scores_dict = score_unlabeled_images(acquisition_type,(len(unlabeled_dataframe)//C.batch_size) + 1, unlabeled_generator, network, C)
 
     except Exception as e:
         print (e)
@@ -209,8 +208,8 @@ print("Done with acquisition no. ", active_acquisition_index, "out of ", len(unl
 
 #save the unlabeled dataframe and the active train dataframe for next acquisition
 active_acquisition_index +=1
-active_train_dataframe.to_pickle("./active_dataframe_log/"+log_filename+"_active_train_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
-unlabeled_dataframe.to_pickle("./active_dataframe_log/"+log_filename+"_unlabeled_dataframe_"+str(exp_index_num)+str(active_acquisition_index)+".pkl")
+active_train_dataframe.to_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_active_train_dataframe_"+".pkl")
+unlabeled_dataframe.to_pickle("./active_dataframe_log/"+log_filename+str(parser.dropout_type)+str(acquisition_type)+str(exp_index_num)+str(active_acquisition_index)+"_unlabeled_dataframe_"+".pkl")
 
 
 #prepare record log file
