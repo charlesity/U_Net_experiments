@@ -165,8 +165,8 @@ else:
                                       ,validation_data = val_generator, validation_steps = (len(Val_dataframe)//C.batch_size)+1, callbacks=[es])
         else:
             # #fine tune weights model by loading previous weights
-            print("Loaded weight is ", "./stored_weights/"+log_filename+"_weights_"+str(exp_index_num)+".h5")
             model.load_weights("./stored_weights/"+log_filename+"_weights_"+str(parser.dropout_type)+str(acquisition_type)+".h5")
+            print("Loaded weight is ", "./stored_weights/"+log_filename+"_weights_"+str(parser.dropout_type)+str(acquisition_type)+".h5")
             history = model.fit_generator(generator = active_train_generator, steps_per_epoch=(len(active_train_dataframe)//C.batch_size) + 1, epochs=C.epochs, use_multiprocessing = True
                                       ,validation_data = val_generator, validation_steps = (len(Val_dataframe)//C.batch_size)+1, callbacks=[es])
         #save_the_model
