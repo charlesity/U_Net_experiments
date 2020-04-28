@@ -119,7 +119,7 @@ network = model_instance(C)
 model = network.getModel()
 es = EarlyStopping(monitor='val_loss', mode='auto', patience = C.early_stop_patience, verbose=1) if C.early_stop == 1 else None
 
-print ("Active acquition ", active_acquisition_index, " in experiment num ", exp_index_num, " of Dropout type ", parser.dropout_type)
+print ("Active acquition ", active_acquisition_index, " in experiment num ", exp_index_num, " of Dropout type ", parser.dropout_type, " acquisition type ", str(acquisition_type))
 
 if first_Training:
     print ("First Training")
@@ -204,7 +204,7 @@ print ("Done evaluating mcmc metrics")
 val_loss_mcmc.append(mcmc_loss)
 val_dice_coef_mcmc.append(mcmc_dice)
 
-print("Done with acquisition no. ", active_acquisition_index, "out of ", len(unlabeled_dataframe)//C.active_batch, "remaining acquisitions in experiment number ", exp_index_num, " of Dropout type ", parser.dropout_type)
+print("Done with acquisition no. ", active_acquisition_index, "out of ", len(unlabeled_dataframe)//C.active_batch, "remaining acquisitions in experiment number ", exp_index_num, " of Dropout type ", parser.dropout_type, " acquisition type ", str(acquisition_type))
 
 #save the unlabeled dataframe and the active train dataframe for next acquisition
 active_acquisition_index +=1
