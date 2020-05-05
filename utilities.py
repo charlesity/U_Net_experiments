@@ -144,7 +144,19 @@ def model_instance(C):
 def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generator, network, C):
     #acquisition types
     unlabeled_scores_dict = dict()
-    if acquisition_type == 1:
+    if acquisition_type == 0:
+        # fully partial posterior query by dropout committee with KL
+        print('Calculting Random Acquisition')
+        for it in range(generator_range):
+            img, _, fn_imgs, _ = next(unlabeled_generator)
+            for fn in fn_imgs:
+                unlabeled_scores_dict[fn] = 1 # assign uniforma score to unlabeled set
+            if len(unlabeled_scores_dict) > C.active_batch:
+                break #stop when we have acquired enough for active batch
+        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
+        print('Done Random Acquisition')
+
+    elif acquisition_type == 1:
         # fully partial posterior query by dropout committee with KL
         print('Calculting entropy Acquisition')
         for it in range(generator_range):
