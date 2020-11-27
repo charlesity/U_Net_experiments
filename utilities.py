@@ -91,7 +91,22 @@ def adjustData(img,mask,num_class):
         return img,to_categorical(mask.astype(np.uint8), num_class)
 
 
+
 def get_colored_segmentation_image(seg_arr, n_classes ,colors=class_colors ):
+    seg_arr = seg_arr.argmax(axis=2)
+    output_height = seg_arr.shape[0]
+    output_width = seg_arr.shape[1]
+    seg_img = np.zeros((output_height, output_width, 3))
+
+    for c in range(n_classes):
+        seg_img[:, :, 0] += (seg_arr[:, :] == c)*(colors[c][0])
+        seg_img[:, :, 1] += (seg_arr[:, :] == c)*(colors[c][1])
+        seg_img[:, :, 2] += (seg_arr[:, :] == c)*(colors[c][2])
+
+    return seg_img.astype(np.uint8)
+
+def get_uncertain_segmentation_image(seg_arr, n_classes ,colors=class_colors ):
+    print (seg_arr[20,20,:])
     seg_arr = seg_arr.argmax(axis=2)
     output_height = seg_arr.shape[0]
     output_width = seg_arr.shape[1]
@@ -218,7 +233,60 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
                 unlabeled_scores_dict[fn_imgs[score_index]] = s
         unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
         print('Done Calculating Committee-Jensen')
+    elif acquisition_type == 5:
+        print ("Heteroscedastic Aleatoric uncertainty")
+        for it in range(generator_range):
+            img, _, fn_imgs, _ = next(unlabeled_generator)
+            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
+            standard_prediction = network.getModel().predict(img).astype(np.double)
+            stochastic_predictions = np.zeros((img.shape[0], *out_shape))
+            stochastic_predictions_squared = np.zeros((img.shape[0], *out_shape))
+            var_pred = np.zeros((img.shape[0], *out_shape[:-1], 1))
+            print (stochastic_predictions.shape, stochastic_predictions_squared.shape, var_pred.shape)
+            for dropout_i in range(C.dropout_iterations):
+                pred = network.stochastic_foward_pass(img)
+                stochastic_predictions_squared += pred **2
+                stochastic_predictions += pred
+                var_pred[:,:,:,0] += np.var(pred, axis = 3) ** 2
+            var_pred /= C.dropout_iterations
+            stochastic_predictions /= C.dropout_iterations #average stochastic prediction
+            stochastic_predictions_squared /= C.dropout_iterations
+            var_pred /= C.dropout_iterations
+            stochastic_predictions = (stochastic_predictions) **2
+            predictions = stochastic_predictions_squared - stochastic_predictions + var_pred
+            scores = cynthonized_functions.score_entropy(predictions.astype(np.double))
+            for score_index, s in enumerate(kl_score):
+                unlabeled_scores_dict[fn_imgs[score_index]] = s
+        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
+
+        print('Done Calculating Heteroscedastic Aleatoric')
+
+    elif acquisition_type == 6:
+        print ("MCMC Last Layer ")
+        freeze = K.function([network.getModel().layers[0].input, K.learning_phase()],[network.getModel().layers[-2].output])
+        last_layer_predict = K.function([network.getModel().layers[-2].output, K.learning_phase()],[network.getModel().layers[-1].output])
+        for it in range(generator_range):
+            img, _, fn_imgs, _ = next(unlabeled_generator)
+            out_shape = network.getModel().layers[-1].output.get_shape().as_list()[1:]
+            stochastic_predictions = np.zeros((img.shape[0], *out_shape))
+            for dropout_i in range(C.dropout_iterations):
+                intermidiate = freeze((img, 0))[0]
+                pred = last_layer_predict((intermidiate, 1))[0]
+                stochastic_predictions += pred
+            stochastic_predictions /= C.dropout_iterations
+            scores = cynthonized_functions.score_entropy(stochastic_predictions)
+            for score_index, s in enumerate(scores):
+                unlabeled_scores_dict[fn_imgs[score_index]] = s
+        unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
+        print('Done MCMC Last Layer')
+
+
+
+
+
     return unlabeled_scores_dict
+
+
 
 
 def mean_iou(y_true, y_pred):

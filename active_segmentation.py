@@ -30,7 +30,7 @@ parser.add_argument("-exp_index", "--experiment_index_number",  required = True,
 parser.add_argument("-n_classes", "--num_classes",  required = True, help ="Number of classes")
 parser.add_argument("-f_ext", "--file_ext",  required = True, help ="File Extension")
 parser.add_argument("-ac_batch", "--active_batch",  required = True, help ="File Extension")
-parser.add_argument("-qt", "--q_type", type=int,  help="1 = Entropy, 2 = Committee-KL, 3 =Committee-Jen,  else = Random acquition")
+parser.add_argument("-qt", "--q_type", type=int,  help="0= Random, 1 = Entropy, 2 = Bald, 3 = Committee-KL, 4 =Committee-Jen")
 parser.add_argument("-re_w", "--re_initialize_weights", type=int, help="determine whether or not weights should be re-initialized")
 parser.add_argument("-early_s", "--early_stop", type=int,  help="Indicates early stop")
 parser.add_argument("-act_ac_ind", "--active_acquisition_index", type=int,  help="Index of Active acquisition")

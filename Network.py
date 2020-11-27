@@ -55,8 +55,8 @@ class Network():
 
         o = (Conv2D(1024, (C.kernel_size, C.kernel_size), padding='same', data_format=C.IMAGE_ORDERING))(o)
         o = Dropout(C.standard_dropout) (o) if C.enable_standard_dropout else (o)
-        o = (Activation('relu'))(o)
         o = (BatchNormalization())(o)
+        o = (Activation('relu'))(o)
 
 
         #image reconstruction
@@ -87,10 +87,11 @@ class Network():
 
     def stochastic_predict(self, test_imgs, C):
         out_shape = self.model.layers[-1].output.get_shape().as_list()[1:]
-        pred_mask = np.zeros(shape = (test_imgs.shape[0], *out_shape))
+        pred_mask = np.zeros(shape = (test_imgs.shape[0], *out_shape), dtype=float)
         for i in range(C.dropout_iterations):
-            pred_mask += self.f((test_imgs, 1))[0]
-        pred_mask /= C.dropout_iterations
+            pred_mask = pred_mask + self.f((test_imgs, 1))[0]
+        print(pred_mask[0,0,0,:])
+        pred_mask = pred_mask/C.dropout_iterations
         return pred_mask
 
     def stochastic_evaluate_generator(self, generator, C, steps=None):
