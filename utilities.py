@@ -255,7 +255,7 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
             stochastic_predictions = (stochastic_predictions) **2
             predictions = stochastic_predictions_squared - stochastic_predictions + var_pred
             scores = cynthonized_functions.score_entropy(predictions.astype(np.double))
-            for score_index, s in enumerate(kl_score):
+            for score_index, s in enumerate(scores):
                 unlabeled_scores_dict[fn_imgs[score_index]] = s
         unlabeled_scores_dict = sorted(unlabeled_scores_dict.items(), key=lambda kv: kv[1])
 
