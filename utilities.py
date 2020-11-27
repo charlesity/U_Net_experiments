@@ -242,7 +242,6 @@ def score_unlabeled_images(acquisition_type, generator_range, unlabeled_generato
             stochastic_predictions = np.zeros((img.shape[0], *out_shape))
             stochastic_predictions_squared = np.zeros((img.shape[0], *out_shape))
             var_pred = np.zeros((img.shape[0], *out_shape[:-1], 1))
-            print (stochastic_predictions.shape, stochastic_predictions_squared.shape, var_pred.shape)
             for dropout_i in range(C.dropout_iterations):
                 pred = network.stochastic_foward_pass(img)
                 stochastic_predictions_squared += pred **2
